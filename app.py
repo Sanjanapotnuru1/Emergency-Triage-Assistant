@@ -14,10 +14,12 @@ except Exception:
         duration = patient_data.get("duration", "")
         conditions = patient_data.get("conditions", "")
         s = symptoms.lower()
+
         emergency_terms = [
             "chest pain", "breathing", "shortness of breath", "unconscious",
             "stroke", "seizure", "bleeding", "lung infection"
         ]
+
         if any(term in s for term in emergency_terms) or pain >= 8:
             level = "High"
             concern = "Possible severe respiratory or cardiac emergency"
@@ -108,6 +110,7 @@ if mode == "Dark Mode":
     input_bg = "#0f1b2f"
     primary = "#1d4ed8"
     primary_hover = "#1e40af"
+
     success_bg = "rgba(22,163,74,0.16)"
     success_text = "#bbf7d0"
     warning_bg = "rgba(245,158,11,0.16)"
@@ -116,6 +119,20 @@ if mode == "Dark Mode":
     danger_text = "#fecaca"
     info_bg = "rgba(59,130,246,0.14)"
     info_text = "#dbeafe"
+
+    action_btn_bg = "linear-gradient(135deg, #1d4ed8, #2563eb)"
+    action_btn_hover = "linear-gradient(135deg, #1e40af, #1d4ed8)"
+    action_btn_text = "#ffffff"
+    action_btn_border = "rgba(255,255,255,0.08)"
+
+    upload_btn_bg = "#162033"
+    upload_btn_hover = "#1b2942"
+    upload_btn_text = "#e2e8f0"
+    upload_btn_border = "rgba(148,163,184,0.22)"
+
+    uploader_bg = "#0f172a"
+    uploader_text = "#e2e8f0"
+
 else:
     bg = "#f3f7fb"
     card = "#ffffff"
@@ -128,6 +145,7 @@ else:
     input_bg = "#ffffff"
     primary = "#1d4ed8"
     primary_hover = "#1e40af"
+
     success_bg = "#ecfdf5"
     success_text = "#166534"
     warning_bg = "#fffbeb"
@@ -137,10 +155,24 @@ else:
     info_bg = "#eff6ff"
     info_text = "#1d4ed8"
 
+    action_btn_bg = "linear-gradient(135deg, #1d4ed8, #2563eb)"
+    action_btn_hover = "linear-gradient(135deg, #1e40af, #1d4ed8)"
+    action_btn_text = "#ffffff"
+    action_btn_border = "rgba(29,78,216,0.18)"
+
+    upload_btn_bg = "#ffffff"
+    upload_btn_hover = "#f8fafc"
+    upload_btn_text = "#0f172a"
+    upload_btn_border = "rgba(15,23,42,0.12)"
+
+    uploader_bg = "#f8fafc"
+    uploader_text = "#334155"
+
 def save_report(data, result):
     file_name = Path("patient_reports.csv")
     report = {**data, "result": result, "timestamp": datetime.now().isoformat(timespec="seconds")}
     new_df = pd.DataFrame([report])
+
     if file_name.exists():
         old_df = pd.read_csv(file_name)
         pd.concat([old_df, new_df], ignore_index=True).to_csv(file_name, index=False)
@@ -148,9 +180,18 @@ def save_report(data, result):
         new_df.to_csv(file_name, index=False)
 
 def normalize_result(raw_text):
-    sections = {"urgency": "", "concern": "", "severity": "", "next_steps": "", "notes": "", "disclaimer": ""}
+    sections = {
+        "urgency": "",
+        "concern": "",
+        "severity": "",
+        "next_steps": "",
+        "notes": "",
+        "disclaimer": ""
+    }
+
     lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
     current = None
+
     for line in lines:
         lower = line.lower()
         if "urgency level" in lower:
@@ -171,6 +212,7 @@ def normalize_result(raw_text):
         elif "disclaimer" in lower:
             current = "disclaimer"
             continue
+
         if current:
             sections[current] += line + " "
 
@@ -180,6 +222,7 @@ def normalize_result(raw_text):
     if not sections["urgency"]:
         m = re.search(r"(high|moderate|low)", raw_text, re.IGNORECASE)
         sections["urgency"] = m.group(1).title() if m else "Moderate"
+
     if not sections["concern"]:
         sections["concern"] = "Clinical review recommended based on the reported symptoms."
     if not sections["severity"]:
@@ -190,6 +233,7 @@ def normalize_result(raw_text):
         sections["notes"] = "No additional notes available."
     if not sections["disclaimer"]:
         sections["disclaimer"] = "This tool supports triage guidance only and does not replace professional medical diagnosis."
+
     return sections
 
 def urgency_theme(level):
@@ -209,6 +253,7 @@ def clean_analysis_text(text):
     text = re.sub(r"\s*\-\s*", "\n• ", text)
     text = re.sub(r"\n{2,}", "\n", text)
     text = text.strip()
+
     lines = [line.strip("• ").strip() for line in text.split("\n") if line.strip()]
     formatted = []
     for line in lines:
@@ -222,6 +267,7 @@ def clean_analysis_text(text):
 def split_severity_sections(text):
     cleaned = clean_analysis_text(text)
     lines = [line.replace("• ", "").strip() for line in cleaned.split("\n") if line.strip()]
+
     section_map = {
         "Symptoms reported": "Assessment",
         "Pain score": "Pain Score",
@@ -234,8 +280,10 @@ def split_severity_sections(text):
         "AI Confidence Level": "Confidence",
         "Emergency Alert Recommendation": "Emergency Alert"
     }
+
     grouped = {}
     current_title = "Assessment"
+
     for line in lines:
         if ":" in line:
             head, body = line.split(":", 1)
@@ -246,18 +294,44 @@ def split_severity_sections(text):
             grouped.setdefault(title, []).append(body if body else head)
         else:
             grouped.setdefault(current_title, []).append(line)
+
     return grouped
 
 st.markdown(f"""
 <style>
 :root {{
-    --bg: {bg}; --card: {card}; --card-alt: {card_alt}; --soft-card: {soft_card};
-    --text: {text}; --muted: {muted}; --faint: {faint}; --border: {border};
-    --input-bg: {input_bg}; --primary: {primary}; --primary-hover: {primary_hover};
-    --success-bg: {success_bg}; --success-text: {success_text};
-    --warning-bg: {warning_bg}; --warning-text: {warning_text};
-    --danger-bg: {danger_bg}; --danger-text: {danger_text};
-    --info-bg: {info_bg}; --info-text: {info_text};
+    --bg: {bg};
+    --card: {card};
+    --card-alt: {card_alt};
+    --soft-card: {soft_card};
+    --text: {text};
+    --muted: {muted};
+    --faint: {faint};
+    --border: {border};
+    --input-bg: {input_bg};
+    --primary: {primary};
+    --primary-hover: {primary_hover};
+    --success-bg: {success_bg};
+    --success-text: {success_text};
+    --warning-bg: {warning_bg};
+    --warning-text: {warning_text};
+    --danger-bg: {danger_bg};
+    --danger-text: {danger_text};
+    --info-bg: {info_bg};
+    --info-text: {info_text};
+
+    --action-btn-bg: {action_btn_bg};
+    --action-btn-hover: {action_btn_hover};
+    --action-btn-text: {action_btn_text};
+    --action-btn-border: {action_btn_border};
+
+    --upload-btn-bg: {upload_btn_bg};
+    --upload-btn-hover: {upload_btn_hover};
+    --upload-btn-text: {upload_btn_text};
+    --upload-btn-border: {upload_btn_border};
+
+    --uploader-bg: {uploader_bg};
+    --uploader-text: {uploader_text};
 }}
 
 .stApp {{
@@ -359,56 +433,61 @@ textarea::placeholder, input::placeholder {{
     opacity: 1 !important;
 }}
 
+/* Main action button */
+.stForm button[kind="primary"],
 .stButton > button,
-.stDownloadButton > button,
-.stForm button[kind="primary"] {{
+.stDownloadButton > button {{
     width: 100%;
-    min-height: 50px;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+    min-height: 52px;
     border-radius: 14px !important;
-    background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
-    color: #ffffff !important;
+    border: 1px solid var(--action-btn-border) !important;
+    background: var(--action-btn-bg) !important;
+    color: var(--action-btn-text) !important;
     font-size: 1rem !important;
     font-weight: 700 !important;
-    box-shadow: 0 10px 24px rgba(29,78,216,0.24);
+    box-shadow: 0 10px 24px rgba(29,78,216,0.22);
 }}
 
+.stForm button[kind="primary"]:hover,
 .stButton > button:hover,
-.stDownloadButton > button:hover,
-.stForm button[kind="primary"]:hover {{
-    background: linear-gradient(135deg, #1e40af, #1d4ed8) !important;
-    color: #ffffff !important;
+.stDownloadButton > button:hover {{
+    background: var(--action-btn-hover) !important;
+    color: var(--action-btn-text) !important;
 }}
 
+.stForm button[kind="primary"] span,
 .stButton > button span,
-.stDownloadButton > button span,
-.stForm button[kind="primary"] span {{
-    color: #ffffff !important;
+.stDownloadButton > button span {{
+    color: var(--action-btn-text) !important;
 }}
 
+/* Uploader dropzone */
 section[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] {{
-    background: #0f172a !important;
-    border: 1px solid rgba(148, 163, 184, 0.22) !important;
+    background: var(--uploader-bg) !important;
+    border: 1px solid var(--upload-btn-border) !important;
     border-radius: 16px !important;
     padding: 0.9rem !important;
-    box-shadow: 0 8px 20px rgba(2, 6, 23, 0.18);
+    box-shadow: 0 8px 20px rgba(2,6,23,0.10);
 }}
 
 section[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] * {{
-    color: #e2e8f0 !important;
+    color: var(--uploader-text) !important;
 }}
 
+/* Upload button only */
 section[data-testid="stFileUploader"] button {{
-    background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: var(--upload-btn-bg) !important;
+    color: var(--upload-btn-text) !important;
+    border: 1px solid var(--upload-btn-border) !important;
     border-radius: 12px !important;
+    min-height: 46px !important;
     font-weight: 700 !important;
-    box-shadow: 0 10px 20px rgba(29, 78, 216, 0.22);
+    box-shadow: none !important;
 }}
 
 section[data-testid="stFileUploader"] button:hover {{
-    background: linear-gradient(135deg, #1e40af, #1d4ed8) !important;
+    background: var(--upload-btn-hover) !important;
+    color: var(--upload-btn-text) !important;
 }}
 
 section[data-testid="stFileUploader"] button span,
@@ -418,7 +497,7 @@ section[data-testid="stFileUploader"] span,
 section[data-testid="stFileUploader"] p,
 section[data-testid="stFileUploader"] label,
 section[data-testid="stFileUploader"] label * {{
-    color: #e2e8f0 !important;
+    color: var(--uploader-text) !important;
 }}
 
 .patient-chip {{
@@ -702,15 +781,19 @@ if st.session_state.page == "form":
         if not symptoms.strip():
             st.error("Please enter symptoms.")
             st.stop()
+
         if not name.strip():
             st.error("Please enter patient name.")
             st.stop()
+
         if emergency and (not emergency.isdigit() or len(emergency) < 8):
             st.error("Emergency number should contain only digits and be at least 8 digits long.")
             st.stop()
+
         if "Blood Pressure" in conditions and not bp_level.strip():
             st.error("Please enter the blood pressure reading because Blood Pressure is selected as an existing condition.")
             st.stop()
+
         if "Diabetes" in conditions and not sugar_level.strip():
             st.error("Please enter the blood sugar level because Diabetes is selected as an existing condition.")
             st.stop()
