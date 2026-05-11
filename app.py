@@ -313,81 +313,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-
-/* =========================
-   ANALYZE BUTTON
-========================= */
-
-.analyze-btn button {
-
-    background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
-
-    color: white !important;
-
-    border: none !important;
-
-    border-radius: 14px !important;
-
-    height: 54px !important;
-
-    font-size: 17px !important;
-
-    font-weight: 700 !important;
-
-    width: 100% !important;
-
-    box-shadow: 0 8px 20px rgba(37,99,235,0.30);
-}
-
-.analyze-btn button span {
-
-    color: white !important;
-}
-
-/* =========================
-   FILE UPLOADER
-========================= */
-
-.upload-section [data-testid="stFileUploader"] {
-
-    background: #111827 !important;
-
-    border-radius: 18px !important;
-
-    border: 1px solid rgba(255,255,255,0.08) !important;
-
-    padding: 18px !important;
-}
-
-.upload-section [data-testid="stFileUploader"] button {
-
-    background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
-
-    color: white !important;
-
-    border: none !important;
-
-    border-radius: 12px !important;
-
-    font-weight: 700 !important;
-}
-
-.upload-section [data-testid="stFileUploader"] button span {
-
-    color: white !important;
-}
-
-.upload-section [data-testid="stFileUploader"] small,
-.upload-section [data-testid="stFileUploader"] div,
-.upload-section [data-testid="stFileUploader"] p {
-
-    color: #d1d5db !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
 if st.session_state.page == "form":
     st.markdown('<div class="form-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">📝 Patient Assessment Form</div>', unsafe_allow_html=True)
@@ -408,19 +333,8 @@ if st.session_state.page == "form":
         age = col3.number_input("Age", min_value=1, max_value=120, value=25)
         gender = col4.selectbox("Gender", ["Male", "Female", "Other"])
         emergency = col4.text_input("Emergency Contact Number")
-       st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-
-uploaded_file = st.file_uploader(
-    "📄 Upload Medical Report",
-    type=["pdf", "png", "jpg", "jpeg"]
-)
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown('<div class="analyze-btn">', unsafe_allow_html=True)
-
-submitted = st.form_submit_button("🔍 Analyze Symptoms")
-
+        uploaded_file = st.file_uploader("Upload Medical Report", type=["pdf", "png", "jpg", "jpeg"])
+        submitted = st.form_submit_button("🔍 Analyze Symptoms")
     st.markdown("</div>", unsafe_allow_html=True)
     if submitted:
         if not symptoms.strip():
