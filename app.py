@@ -304,13 +304,12 @@ def clean_analysis_text(text):
 
 def split_severity_sections(text):
     patterns = {
-        "Symptoms Reported": r"Symptoms Reported:(.*?)(?=Pain Score:|$)",
-        "Pain Score": r"Pain Score:(.*?)(?=Clinical Interpretation:|$)",
-        "Clinical Interpretation": r"Clinical Interpretation:(.*?)(?=Recommended Action:|$)",
-        "Recommended Action": r"Recommended Action:(.*?)(?=Precautions:|$)",
-        "Precautions": r"Precautions:(.*?)(?=Emergency Warning Signs:|$)",
-        "Emergency Warning Signs": r"Emergency Warning Signs:(.*?)(?=AI Confidence Level:|$)",
-        "AI Confidence Level": r"AI Confidence Level:(.*?)(?=Recommended Next Steps:|$)",
+        "Symptoms Reported": r"Symptoms Reported:\s*(.*?)(?=Pain Score:)",
+        "Pain Score": r"Pain Score:\s*(.*?)(?=Recommended Action:)",
+        "Recommended Action": r"Recommended Action:\s*(.*?)(?=Precautions:)",
+        "Precautions": r"Precautions:\s*(.*?)(?=Warning Signs:|Emergency Warning Signs:|AI Confidence Level:)",
+        "Warning Signs": r"(?:Warning Signs|Emergency Warning Signs):\s*(.*?)(?=AI Confidence Level:)",
+        "AI Confidence Level": r"AI Confidence Level:\s*(.*?)(?=Recommended Next Steps:|$)",
     }
 
     sections = {}
@@ -319,6 +318,7 @@ def split_severity_sections(text):
         if match:
             content = match.group(1).strip()
             content = re.sub(r"\n+", " ", content)
+            content = re.sub(r"\s+", " ", content).strip()
             sections[title] = content
     return sections
 
