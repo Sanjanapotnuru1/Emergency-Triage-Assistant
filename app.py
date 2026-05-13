@@ -9,113 +9,92 @@ try:
     from llm_engine import analyze_patient
 except Exception:
     def analyze_patient(patient_data):
-    symptoms = patient_data.get("symptoms", "")
-    pain = patient_data.get("pain", 0)
-    duration = patient_data.get("duration", "")
-    conditions = patient_data.get("conditions", "")
+        symptoms = patient_data.get("symptoms", "")
+        pain = patient_data.get("pain", 0)
+        duration = patient_data.get("duration", "")
+        conditions = patient_data.get("conditions", "")
 
-    s = symptoms.lower()
+        s = symptoms.lower()
 
-    emergency_terms = [
-        "chest pain",
-        "breathing",
-        "shortness of breath",
-        "unconscious",
-        "stroke",
-        "seizure",
-        "bleeding",
-        "lung infection",
-        "vomiting",
-        "high fever"
-    ]
+        emergency_terms = [
+            "chest pain",
+            "breathing",
+            "shortness of breath",
+            "unconscious",
+            "stroke",
+            "seizure",
+            "bleeding",
+            "lung infection",
+            "vomiting",
+            "high fever"
+        ]
 
-    if any(term in s for term in emergency_terms) or pain >= 8:
-        level = "High"
+        if any(term in s for term in emergency_terms) or pain >= 8:
+            level = "High"
+            concern = (
+                "The symptoms indicate a possible severe respiratory, cardiac, or infectious condition "
+                "requiring immediate medical attention and continuous monitoring."
+            )
+            action = (
+                "Visit the nearest emergency department immediately or contact emergency medical services. "
+                "Continuous monitoring is strongly recommended for the patient. "
+                "Avoid self-medication unless prescribed by a certified healthcare professional."
+            )
+            precautions = (
+                "The patient should remain hydrated and avoid strenuous physical activity. "
+                "Ensure adequate rest in a well-ventilated environment. "
+                "Monitor temperature, breathing pattern, oxygen levels, and consciousness regularly."
+            )
+            warning = (
+                "Seek emergency intervention immediately if symptoms such as severe chest pain, persistent breathing difficulty, "
+                "bluish lips, unconsciousness, continuous vomiting, confusion, or seizures occur."
+            )
+            confidence = "High"
+        elif pain >= 5:
+            level = "Moderate"
+            concern = (
+                "The symptoms may indicate a progressing infection, inflammatory condition, or moderate clinical complication "
+                "that requires medical evaluation."
+            )
+            action = (
+                "Schedule an urgent consultation with a doctor within the next 24 hours. "
+                "Follow prescribed medications properly and maintain symptom monitoring."
+            )
+            precautions = (
+                "Ensure proper hydration and balanced nutrition. Avoid stress and physical exertion until symptoms improve. "
+                "Take adequate rest and continue monitoring body temperature and discomfort levels."
+            )
+            warning = (
+                "Seek immediate medical care if fever increases, pain becomes severe, breathing becomes difficult, "
+                "or symptoms persist for an extended period."
+            )
+            confidence = "Medium"
+        else:
+            level = "Low"
+            concern = (
+                "The symptoms currently appear mild and manageable, but regular monitoring is recommended "
+                "to prevent complications."
+            )
+            action = (
+                "Continue home care measures including hydration, rest, and proper nutrition. "
+                "Consult a healthcare professional if symptoms worsen or do not improve."
+            )
+            precautions = (
+                "Maintain a healthy diet, adequate sleep, and hydration. "
+                "Avoid exposure to infection-prone environments."
+            )
+            warning = (
+                "Consult a doctor if symptoms persist for more than a few days, pain increases, or additional symptoms develop."
+            )
+            confidence = "Medium"
 
-        concern = """
-The symptoms indicate a possible severe respiratory, cardiac, or infectious condition
-requiring immediate medical attention and continuous monitoring.
-"""
+        notes = (
+            f"Existing Conditions: {conditions if conditions else 'None'}. "
+            f"Duration of Symptoms: {duration if duration else 'Not specified'}. "
+            "Patient should continue observation and maintain follow-up if required."
+        )
 
-        action = """
-Visit the nearest emergency department immediately or contact emergency medical services.
-Continuous monitoring is strongly recommended for the patient.
-Avoid self-medication unless prescribed by a certified healthcare professional.
-"""
-
-        precautions = """
-The patient should remain hydrated and avoid strenuous physical activity.
-Ensure adequate rest in a well-ventilated environment.
-Monitor temperature, breathing pattern, oxygen levels, and consciousness regularly.
-"""
-
-        warning = """
-Seek emergency intervention immediately if symptoms such as severe chest pain,
-persistent breathing difficulty, bluish lips, unconsciousness,
-continuous vomiting, confusion, or seizures occur.
-"""
-
-        confidence = "High"
-
-    elif pain >= 5:
-        level = "Moderate"
-
-        concern = """
-The symptoms may indicate a progressing infection, inflammatory condition,
-or moderate clinical complication that requires medical evaluation.
-"""
-
-        action = """
-Schedule an urgent consultation with a doctor within the next 24 hours.
-Follow prescribed medications properly and maintain symptom monitoring.
-"""
-
-        precautions = """
-Ensure proper hydration and balanced nutrition.
-Avoid stress and physical exertion until symptoms improve.
-Take adequate rest and continue monitoring body temperature and discomfort levels.
-"""
-
-        warning = """
-Seek immediate medical care if fever increases,
-pain becomes severe, breathing becomes difficult,
-or symptoms persist for an extended period.
-"""
-
-        confidence = "Medium"
-
-    else:
-        level = "Low"
-
-        concern = """
-The symptoms currently appear mild and manageable,
-but regular monitoring is recommended to prevent complications.
-"""
-
-        action = """
-Continue home care measures including hydration, rest, and proper nutrition.
-Consult a healthcare professional if symptoms worsen or do not improve.
-"""
-
-        precautions = """
-Maintain a healthy diet, adequate sleep, and hydration.
-Avoid exposure to infection-prone environments.
-"""
-
-        warning = """
-Consult a doctor if symptoms persist for more than a few days,
-pain increases, or additional symptoms develop.
-"""
-
-        confidence = "Medium"
-
-    notes = f"""
-Existing Conditions: {conditions if conditions else 'None'}.
-Duration of Symptoms: {duration if duration else 'Not specified'}.
-Patient should continue observation and maintain follow-up if required.
-"""
-
-    return f"""
+        return f"""
 Emergency Triage Assessment for {patient_data.get('name', 'Patient')}
 
 AI-Detected Urgency Level:
@@ -243,25 +222,32 @@ def save_report(data, result):
         new_df.to_csv(file_name, index=False)
 
 def normalize_result(raw_text):
-    sections = {"urgency":"","concern":"","severity":"","next_steps":"","notes":"","disclaimer":""}
+    sections = {"urgency": "", "concern": "", "severity": "", "next_steps": "", "notes": "", "disclaimer": ""}
     lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
     current = None
     for line in lines:
         lower = line.lower()
         if "urgency level" in lower:
-            current = "urgency"; continue
+            current = "urgency"
+            continue
         elif "possible medical concern" in lower:
-            current = "concern"; continue
+            current = "concern"
+            continue
         elif "symptom severity analysis" in lower:
-            current = "severity"; continue
+            current = "severity"
+            continue
         elif "recommended next steps" in lower:
-            current = "next_steps"; continue
+            current = "next_steps"
+            continue
         elif "additional notes" in lower:
-            current = "notes"; continue
+            current = "notes"
+            continue
         elif "disclaimer" in lower:
-            current = "disclaimer"; continue
+            current = "disclaimer"
+            continue
         if current:
             sections[current] += line + " "
+
     for key in sections:
         sections[key] = sections[key].strip()
 
@@ -308,7 +294,6 @@ def clean_analysis_text(text):
     return "\n".join(formatted)
 
 def split_severity_sections(text):
-
     patterns = {
         "Symptoms Reported": r"Symptoms Reported:(.*?)(?=Pain Score:|$)",
         "Pain Score": r"Pain Score:(.*?)(?=Clinical Interpretation:|$)",
@@ -316,20 +301,18 @@ def split_severity_sections(text):
         "Recommended Action": r"Recommended Action:(.*?)(?=Precautions:|$)",
         "Precautions": r"Precautions:(.*?)(?=Emergency Warning Signs:|$)",
         "Emergency Warning Signs": r"Emergency Warning Signs:(.*?)(?=AI Confidence Level:|$)",
-        "AI Confidence Level": r"AI Confidence Level:(.*?)(?=$)"
+        "AI Confidence Level": r"AI Confidence Level:(.*?)(?=$)",
     }
 
     sections = {}
-
     for title, pattern in patterns.items():
         match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
-
         if match:
             content = match.group(1).strip()
             content = re.sub(r"\n+", " ", content)
             sections[title] = content
-
     return sections
+
 st.markdown(f"""
 <style>
 :root {{
@@ -458,7 +441,6 @@ input::placeholder {{
     opacity: 1 !important;
 }}
 
-/* Main buttons */
 div.stButton > button,
 div.stDownloadButton > button,
 div[data-testid="stFormSubmitButton"] > button,
@@ -491,7 +473,6 @@ div[data-testid="stFormSubmitButton"] > button span,
     font-weight: 700 !important;
 }}
 
-/* File uploader */
 section[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] {{
     background: linear-gradient(180deg, #0f2340, #102a4c) !important;
     border: 1px solid rgba(96,165,250,0.32) !important;
@@ -527,7 +508,6 @@ section[data-testid="stFileUploader"] p {{
     color: #dbeafe !important;
 }}
 
-/* Fallback for Streamlit default buttons */
 button[kind="secondary"],
 button[kind="primary"] {{
     background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
@@ -570,46 +550,48 @@ button[kind="primary"] span {{
     gap: 1rem;
     margin-bottom: 1rem;
 }}
-.severity-grid {
+
+.severity-grid {{
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1rem;
     margin-top: 1rem;
-}
+}}
 
-.severity-item {
+.severity-item {{
     background: linear-gradient(145deg, var(--card-alt), var(--soft-card));
     border-radius: 20px;
     padding: 1.2rem;
     border: 1px solid var(--border);
     box-shadow: 0 8px 22px rgba(0,0,0,0.08);
     transition: 0.3s ease;
-}
+}}
 
-.severity-item:hover {
+.severity-item:hover {{
     transform: translateY(-4px);
     box-shadow: 0 14px 30px rgba(37,99,235,0.16);
-}
+}}
 
-.severity-icon {
+.severity-icon {{
     font-size: 1.7rem;
     margin-bottom: 0.8rem;
-}
+}}
 
-.severity-item-title {
+.severity-item-title {{
     font-size: 0.95rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--muted);
     margin-bottom: 0.7rem;
-}
+}}
 
-.severity-item-body {
+.severity-item-body {{
     font-size: 0.98rem;
     line-height: 1.8;
     color: var(--text);
-}
+    white-space: normal;
+}}
 
 .result-eyebrow {{
     color: var(--muted);
@@ -737,34 +719,6 @@ button[kind="primary"] span {{
     white-space: pre-wrap;
 }}
 
-.severity-grid {{
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.85rem;
-}}
-
-.severity-item {{
-    background: var(--card-alt);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1rem;
-}}
-
-.severity-item-title {{
-    font-size: 0.82rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 700;
-    margin-bottom: 0.45rem;
-}}
-
-.severity-item-body {{
-    color: var(--text);
-    line-height: 1.8;
-    font-size: 0.97rem;
-}}
-
 .clean-list {{
     margin: 0;
     padding-left: 1.1rem;
@@ -833,16 +787,20 @@ if st.session_state.page == "form":
     st.markdown('<div class="form-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">📝 Patient Assessment Form</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-subtitle">Enter patient symptoms and background details for structured AI-assisted triage.</div>', unsafe_allow_html=True)
+
     with st.form("triage_form"):
         symptoms = st.text_area("Symptoms", placeholder="Describe symptoms here...")
         col1, col2 = st.columns(2)
         duration = col1.text_input("Duration of Symptoms")
         pain = col2.slider("Pain Level", 1, 10, 5)
         conditions = st.multiselect("Existing Medical Conditions", ["Diabetes", "Blood Pressure", "Asthma", "Heart Disease", "None"])
+
         if "Diabetes" in conditions or "Blood Pressure" in conditions:
             st.caption("Please fill in the required readings for the selected chronic conditions.")
+
         sugar_level = st.text_input("Blood Sugar Level") if "Diabetes" in conditions else ""
         bp_level = st.text_input("Blood Pressure Reading") if "Blood Pressure" in conditions else ""
+
         st.markdown("### 👤 Patient Information")
         col3, col4 = st.columns(2)
         name = col3.text_input("Patient Name")
@@ -851,7 +809,9 @@ if st.session_state.page == "form":
         emergency = col4.text_input("Emergency Contact Number")
         uploaded_file = st.file_uploader("Upload Medical Report", type=["pdf", "png", "jpg", "jpeg"])
         submitted = st.form_submit_button("🔍 Analyze Symptoms")
+
     st.markdown("</div>", unsafe_allow_html=True)
+
     if submitted:
         if not symptoms.strip():
             st.error("Please enter symptoms.")
@@ -868,11 +828,23 @@ if st.session_state.page == "form":
         if "Diabetes" in conditions and not sugar_level.strip():
             st.error("Please enter the blood sugar level because Diabetes is selected as an existing condition.")
             st.stop()
+
         patient_data = {
-            "name": name.strip(), "age": int(age), "gender": gender, "symptoms": symptoms.strip(), "duration": duration.strip(), "pain": int(pain), "conditions": ", ".join([c for c in conditions if c != "None"]) or "None", "blood_sugar": sugar_level.strip(), "blood_pressure": bp_level.strip(), "uploaded_file": uploaded_file.name if uploaded_file else "",
+            "name": name.strip(),
+            "age": int(age),
+            "gender": gender,
+            "symptoms": symptoms.strip(),
+            "duration": duration.strip(),
+            "pain": int(pain),
+            "conditions": ", ".join([c for c in conditions if c != "None"]) or "None",
+            "blood_sugar": sugar_level.strip(),
+            "blood_pressure": bp_level.strip(),
+            "uploaded_file": uploaded_file.name if uploaded_file else "",
         }
+
         with st.spinner("Analyzing symptoms..."):
             result = analyze_patient(patient_data)
+
         save_report(patient_data, result)
         st.session_state.result = result
         st.session_state.patient_data = patient_data
@@ -883,6 +855,7 @@ elif st.session_state.page == "result":
     parsed = normalize_result(st.session_state.result)
     patient = st.session_state.patient_data
     urgency = urgency_theme(parsed["urgency"])
+
     patient_name = safe_text(patient.get("name", "-"))
     patient_age = safe_text(patient.get("age", "-"))
     patient_gender = safe_text(patient.get("gender", "-"))
@@ -899,37 +872,25 @@ elif st.session_state.page == "result":
     parsed_disclaimer = safe_text(parsed["disclaimer"])
     severity_sections = split_severity_sections(parsed["severity"])
 
-severity_cards = ""
+    icons = {
+        "Symptoms Reported": "🩺",
+        "Pain Score": "📊",
+        "Clinical Interpretation": "📋",
+        "Recommended Action": "💊",
+        "Precautions": "⚠️",
+        "Emergency Warning Signs": "🚨",
+        "AI Confidence Level": "🤖",
+    }
 
-icons = {
-    "Symptoms Reported": "🩺",
-    "Pain Score": "📊",
-    "Clinical Interpretation": "📋",
-    "Recommended Action": "💊",
-    "Precautions": "⚠️",
-    "Emergency Warning Signs": "🚨",
-    "AI Confidence Level": "🤖"
-}
-
-for title, content in severity_sections.items():
-
-    severity_cards += f"""
-    <div class="severity-item">
-
-        <div class="severity-icon">
-            {icons.get(title, "📌")}
+    severity_cards = ""
+    for title, content in severity_sections.items():
+        severity_cards += f"""
+        <div class="severity-item">
+            <div class="severity-icon">{icons.get(title, '📌')}</div>
+            <div class="severity-item-title">{safe_text(title)}</div>
+            <div class="severity-item-body">{safe_text(content)}</div>
         </div>
-
-        <div class="severity-item-title">
-            {title}
-        </div>
-
-        <div class="severity-item-body">
-            {content}
-        </div>
-
-    </div>
-    """
+        """
 
     st.markdown('<div class="result-card">', unsafe_allow_html=True)
     st.markdown(f"""
@@ -950,11 +911,13 @@ for title, content in severity_sections.items():
     top4.markdown(f'<div class="patient-chip"><div class="patient-chip-title">Generated</div><div class="patient-chip-value">{generated_date}</div></div>', unsafe_allow_html=True)
 
     left, right = st.columns([1.35, 0.95], gap="large")
+
     with left:
         st.markdown(f'<div class="medical-card"><h3>Urgency Level</h3><div class="status-strip {urgency["strip_class"]}">{parsed_urgency}</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="medical-card"><h3>Symptom Severity Analysis</h3><div class="severity-grid">{severity_cards}</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="medical-card"><h3>Clinical Summary</h3><div class="summary-grid"><div class="summary-card"><div class="summary-label">Possible Concern</div><div class="summary-value">{parsed_concern}</div></div><div class="summary-card"><div class="summary-label">Duration</div><div class="summary-value">{patient_duration}</div></div></div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="medical-card"><h3>Additional Notes</h3><div class="notes-box">{parsed_notes}</div></div>', unsafe_allow_html=True)
+
     with right:
         st.markdown(f'<div class="medical-card"><h3>Patient Overview</h3><ul class="clean-list"><li><strong>Symptoms:</strong> {patient_symptoms}</li><li><strong>Existing conditions:</strong> {patient_conditions}</li><li><strong>Blood pressure:</strong> {patient_bp}</li><li><strong>Blood sugar:</strong> {patient_sugar}</li></ul></div>', unsafe_allow_html=True)
         next_steps_items = [item.strip() for item in re.split(r"[.;]\s+", parsed["next_steps"]) if item.strip()]
