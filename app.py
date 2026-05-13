@@ -222,9 +222,17 @@ def save_report(data, result):
         new_df.to_csv(file_name, index=False)
 
 def normalize_result(raw_text):
-    sections = {"urgency": "", "concern": "", "severity": "", "next_steps": "", "notes": "", "disclaimer": ""}
+    sections = {
+        "urgency": "",
+        "concern": "",
+        "severity": "",
+        "next_steps": "",
+        "notes": "",
+        "disclaimer": ""
+    }
     lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
     current = None
+
     for line in lines:
         lower = line.lower()
         if "urgency level" in lower:
@@ -264,6 +272,7 @@ def normalize_result(raw_text):
         sections["notes"] = "No additional notes available."
     if not sections["disclaimer"]:
         sections["disclaimer"] = "This tool supports triage guidance only and does not replace professional medical diagnosis."
+
     return sections
 
 def urgency_theme(level):
@@ -301,7 +310,7 @@ def split_severity_sections(text):
         "Recommended Action": r"Recommended Action:(.*?)(?=Precautions:|$)",
         "Precautions": r"Precautions:(.*?)(?=Emergency Warning Signs:|$)",
         "Emergency Warning Signs": r"Emergency Warning Signs:(.*?)(?=AI Confidence Level:|$)",
-        "AI Confidence Level": r"AI Confidence Level:(.*?)(?=$)",
+        "AI Confidence Level": r"AI Confidence Level:(.*?)(?=Recommended Next Steps:|$)",
     }
 
     sections = {}
@@ -551,48 +560,6 @@ button[kind="primary"] span {{
     margin-bottom: 1rem;
 }}
 
-.severity-grid {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}}
-
-.severity-item {{
-    background: linear-gradient(145deg, var(--card-alt), var(--soft-card));
-    border-radius: 20px;
-    padding: 1.2rem;
-    border: 1px solid var(--border);
-    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
-    transition: 0.3s ease;
-}}
-
-.severity-item:hover {{
-    transform: translateY(-4px);
-    box-shadow: 0 14px 30px rgba(37,99,235,0.16);
-}}
-
-.severity-icon {{
-    font-size: 1.7rem;
-    margin-bottom: 0.8rem;
-}}
-
-.severity-item-title {{
-    font-size: 0.95rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-    margin-bottom: 0.7rem;
-}}
-
-.severity-item-body {{
-    font-size: 0.98rem;
-    line-height: 1.8;
-    color: var(--text);
-    white-space: normal;
-}}
-
 .result-eyebrow {{
     color: var(--muted);
     text-transform: uppercase;
@@ -717,6 +684,41 @@ button[kind="primary"] span {{
     color: var(--text);
     line-height: 1.8;
     white-space: pre-wrap;
+}}
+
+.severity-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}}
+
+.severity-item {{
+    background: linear-gradient(145deg, var(--card-alt), var(--soft-card));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1rem;
+    box-shadow: 0 10px 20px rgba(2, 6, 23, 0.06);
+}}
+
+.severity-icon {{
+    font-size: 1.5rem;
+    margin-bottom: 0.65rem;
+}}
+
+.severity-item-title {{
+    font-size: 0.84rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 800;
+    margin-bottom: 0.55rem;
+}}
+
+.severity-item-body {{
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 0.98rem;
+    word-break: break-word;
 }}
 
 .clean-list {{
@@ -882,17 +884,21 @@ elif st.session_state.page == "result":
         "AI Confidence Level": "🤖",
     }
 
-    severity_cards = ""
+    card_parts = []
     for title, content in severity_sections.items():
-        severity_cards += f"""
-        <div class="severity-item">
-            <div class="severity-icon">{icons.get(title, '📌')}</div>
-            <div class="severity-item-title">{safe_text(title)}</div>
-            <div class="severity-item-body">{safe_text(content)}</div>
-        </div>
-        """
+        card_parts.append(
+            f'''
+            <div class="severity-item">
+                <div class="severity-icon">{icons.get(title, "📌")}</div>
+                <div class="severity-item-title">{safe_text(title)}</div>
+                <div class="severity-item-body">{safe_text(content)}</div>
+            </div>
+            '''
+        )
+    severity_cards = "".join(card_parts)
 
     st.markdown('<div class="result-card">', unsafe_allow_html=True)
+
     st.markdown(f"""
     <div class="result-header">
         <div>
@@ -913,21 +919,49 @@ elif st.session_state.page == "result":
     left, right = st.columns([1.35, 0.95], gap="large")
 
     with left:
-        st.markdown(f'<div class="medical-card"><h3>Urgency Level</h3><div class="status-strip {urgency["strip_class"]}">{parsed_urgency}</div></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="medical-card"><h3>Symptom Severity Analysis</h3><div class="severity-grid">{severity_cards}</div></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="medical-card"><h3>Clinical Summary</h3><div class="summary-grid"><div class="summary-card"><div class="summary-label">Possible Concern</div><div class="summary-value">{parsed_concern}</div></div><div class="summary-card"><div class="summary-label">Duration</div><div class="summary-value">{patient_duration}</div></div></div></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="medical-card"><h3>Additional Notes</h3><div class="notes-box">{parsed_notes}</div></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="medical-card"><h3>Urgency Level</h3><div class="status-strip {urgency["strip_class"]}">{parsed_urgency}</div></div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div class="medical-card"><h3>Symptom Severity Analysis</h3><div class="severity-grid">{severity_cards}</div></div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div class="medical-card"><h3>Clinical Summary</h3><div class="summary-grid"><div class="summary-card"><div class="summary-label">Possible Concern</div><div class="summary-value">{parsed_concern}</div></div><div class="summary-card"><div class="summary-label">Duration</div><div class="summary-value">{patient_duration}</div></div></div></div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div class="medical-card"><h3>Additional Notes</h3><div class="notes-box">{parsed_notes}</div></div>',
+            unsafe_allow_html=True
+        )
 
     with right:
-        st.markdown(f'<div class="medical-card"><h3>Patient Overview</h3><ul class="clean-list"><li><strong>Symptoms:</strong> {patient_symptoms}</li><li><strong>Existing conditions:</strong> {patient_conditions}</li><li><strong>Blood pressure:</strong> {patient_bp}</li><li><strong>Blood sugar:</strong> {patient_sugar}</li></ul></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="medical-card"><h3>Patient Overview</h3><ul class="clean-list"><li><strong>Symptoms:</strong> {patient_symptoms}</li><li><strong>Existing conditions:</strong> {patient_conditions}</li><li><strong>Blood pressure:</strong> {patient_bp}</li><li><strong>Blood sugar:</strong> {patient_sugar}</li></ul></div>',
+            unsafe_allow_html=True
+        )
+
         next_steps_items = [item.strip() for item in re.split(r"[.;]\s+", parsed["next_steps"]) if item.strip()]
         if not next_steps_items:
             next_steps_items = [parsed["next_steps"]]
         steps_html_items = "".join(f"<li>{safe_text(item)}</li>" for item in next_steps_items)
-        st.markdown(f'<div class="medical-card"><h3>Recommended Next Steps</h3><ul class="clean-list">{steps_html_items}</ul></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="medical-card notice-card"><h3>Important Notice</h3><div class="notes-box">{parsed_disclaimer}</div></div>', unsafe_allow_html=True)
 
-    st.download_button("📄 Download Medical Report", st.session_state.result, file_name="medical_report.txt", mime="text/plain")
+        st.markdown(
+            f'<div class="medical-card"><h3>Recommended Next Steps</h3><ul class="clean-list">{steps_html_items}</ul></div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div class="medical-card notice-card"><h3>Important Notice</h3><div class="notes-box">{parsed_disclaimer}</div></div>',
+            unsafe_allow_html=True
+        )
+
+    st.download_button(
+        "📄 Download Medical Report",
+        st.session_state.result,
+        file_name="medical_report.txt",
+        mime="text/plain"
+    )
 
     if st.button("⬅️ Analyze Another Patient"):
         st.session_state.page = "form"
