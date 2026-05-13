@@ -13,8 +13,6 @@ except Exception:
         pain = patient_data.get("pain", 0)
         duration = patient_data.get("duration", "")
         conditions = patient_data.get("conditions", "")
-        bp = patient_data.get("blood_pressure", "")
-        sugar = patient_data.get("blood_sugar", "")
         s = symptoms.lower()
         emergency_terms = [
             "chest pain", "breathing", "shortness of breath", "unconscious",
@@ -32,18 +30,6 @@ except Exception:
             level = "Low"
             concern = "Symptoms may be manageable with standard medical consultation"
             action = "Monitor symptoms and consult a clinician if symptoms persist or worsen."
-
-        symptoms_expl = f"The patient reports {symptoms}. This symptom cluster should be interpreted in the context of duration, pain severity, and associated risk factors because multiple simultaneous complaints may indicate a more significant clinical issue than an isolated mild symptom."
-        pain_expl = f"The reported pain score is {pain}/10. This level helps estimate current symptom burden, and a higher score generally increases concern when it appears alongside breathing difficulty, vomiting, fever, weakness, chest discomfort, or persistent illness."
-        action_expl = f"The recommended action is: {action} This recommendation is based on the overall symptom pattern and the possibility that the current presentation may require prompt medical evaluation rather than routine observation alone."
-        precautions_expl = "Precautions include rest, hydration, and close monitoring of symptoms. The patient should avoid physical exertion, watch for worsening condition, and seek immediate care if new danger signs appear."
-        warning_expl = "Key warning signs include trouble breathing, chest pain, confusion, uncontrolled vomiting, severe weakness, reduced responsiveness, or any rapid worsening of symptoms. These features may indicate clinical deterioration and should not be ignored."
-        confidence_expl = "The confidence level is Medium. This means the case pattern is sufficiently concerning for triage guidance, but the assessment still requires confirmation through direct clinical evaluation and, if needed, vital signs or diagnostic testing."
-        duration_expl = f"The reported duration is {duration or 'not specified'}. Duration matters because symptoms that persist for longer periods may reflect an ongoing inflammatory, infectious, metabolic, or cardiovascular problem rather than a brief self-limited episode."
-        condition_expl = f"Existing conditions: {conditions or 'None'}. Pre-existing disease can increase the patient's risk and may lower the threshold for urgent evaluation, especially if the current complaint could worsen the underlying condition."
-        concern_expl = f"The leading clinical concern is: {concern}. This is not a confirmed diagnosis, but it represents the most important risk category suggested by the available symptom profile."
-        bp_expl = f"Blood pressure reading: {bp or 'Not provided'}. Blood pressure is clinically useful in triage because abnormal values can signal cardiovascular stress, uncontrolled hypertension, or increased emergency risk when combined with headache, chest symptoms, or breathing difficulty."
-        sugar_expl = f"Blood sugar reading: {sugar or 'Not provided'}. Blood sugar information is relevant because abnormal levels can worsen weakness, dehydration, confusion, or overall instability, especially in patients with diabetes or acute illness."
 
         note_parts = []
         if conditions and conditions != "None":
@@ -63,27 +49,11 @@ Possible Medical Concern:
 
 Symptom Severity Analysis:
 Symptoms reported: {symptoms}
-Symptoms explanation: {symptoms_expl}
 Pain score: {pain}/10
-Pain explanation: {pain_expl}
 Recommended Action: {action}
-Action explanation: {action_expl}
 Precautions: Rest, hydration, and close symptom monitoring are advised.
-Precautions explanation: {precautions_expl}
 Warning Signs: Trouble breathing, chest pain, confusion, uncontrolled vomiting, or severe weakness.
-Warning signs explanation: {warning_expl}
 AI Confidence Level: Medium
-Confidence explanation: {confidence_expl}
-Duration: {duration or 'Not specified'}
-Duration explanation: {duration_expl}
-Existing Conditions: {conditions or 'None'}
-Condition explanation: {condition_expl}
-Clinical Concern: {concern}
-Clinical concern explanation: {concern_expl}
-Blood Pressure: {bp or 'Not provided'}
-Blood pressure explanation: {bp_expl}
-Blood Sugar: {sugar or 'Not provided'}
-Blood sugar explanation: {sugar_expl}
 
 Recommended Next Steps:
 {action}
@@ -178,32 +148,25 @@ def save_report(data, result):
         new_df.to_csv(file_name, index=False)
 
 def normalize_result(raw_text):
-    sections = {"urgency": "", "concern": "", "severity": "", "next_steps": "", "notes": "", "disclaimer": ""}
+    sections = {"urgency":"","concern":"","severity":"","next_steps":"","notes":"","disclaimer":""}
     lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
     current = None
     for line in lines:
         lower = line.lower()
         if "urgency level" in lower:
-            current = "urgency"
-            continue
+            current = "urgency"; continue
         elif "possible medical concern" in lower:
-            current = "concern"
-            continue
+            current = "concern"; continue
         elif "symptom severity analysis" in lower:
-            current = "severity"
-            continue
+            current = "severity"; continue
         elif "recommended next steps" in lower:
-            current = "next_steps"
-            continue
+            current = "next_steps"; continue
         elif "additional notes" in lower:
-            current = "notes"
-            continue
+            current = "notes"; continue
         elif "disclaimer" in lower:
-            current = "disclaimer"
-            continue
+            current = "disclaimer"; continue
         if current:
             sections[current] += line + " "
-
     for key in sections:
         sections[key] = sections[key].strip()
 
@@ -250,81 +213,33 @@ def clean_analysis_text(text):
     return "\n".join(formatted)
 
 def split_severity_sections(text):
-    text = text.replace("Symptoms reported:", "\nSymptoms reported:")
-    text = text.replace("Symptoms explanation:", "\nSymptoms explanation:")
-    text = text.replace("Pain score:", "\nPain score:")
-    text = text.replace("Pain explanation:", "\nPain explanation:")
-    text = text.replace("Recommended Action:", "\nRecommended Action:")
-    text = text.replace("Action explanation:", "\nAction explanation:")
-    text = text.replace("Precautions:", "\nPrecautions:")
-    text = text.replace("Precautions explanation:", "\nPrecautions explanation:")
-    text = text.replace("Warning Signs:", "\nWarning Signs:")
-    text = text.replace("Warning signs explanation:", "\nWarning signs explanation:")
-    text = text.replace("AI Confidence Level:", "\nAI Confidence Level:")
-    text = text.replace("Confidence explanation:", "\nConfidence explanation:")
-    text = text.replace("Duration:", "\nDuration:")
-    text = text.replace("Duration explanation:", "\nDuration explanation:")
-    text = text.replace("Existing Conditions:", "\nExisting Conditions:")
-    text = text.replace("Condition explanation:", "\nCondition explanation:")
-    text = text.replace("Clinical Concern:", "\nClinical Concern:")
-    text = text.replace("Clinical concern explanation:", "\nClinical concern explanation:")
-    text = text.replace("Blood Pressure:", "\nBlood Pressure:")
-    text = text.replace("Blood pressure explanation:", "\nBlood pressure explanation:")
-    text = text.replace("Blood Sugar:", "\nBlood Sugar:")
-    text = text.replace("Blood sugar explanation:", "\nBlood sugar explanation:")
-
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-
-    merged = {
-        "Symptoms": {"value": "", "detail": ""},
-        "Pain Score": {"value": "", "detail": ""},
-        "Recommended Action": {"value": "", "detail": ""},
-        "Precautions": {"value": "", "detail": ""},
-        "Warning Signs": {"value": "", "detail": ""},
-        "Confidence": {"value": "", "detail": ""},
-        "Duration": {"value": "", "detail": ""},
-        "Existing Conditions": {"value": "", "detail": ""},
-        "Clinical Concern": {"value": "", "detail": ""},
-        "Blood Pressure": {"value": "", "detail": ""},
-        "Blood Sugar": {"value": "", "detail": ""},
+    cleaned = clean_analysis_text(text)
+    lines = [line.replace("• ", "").strip() for line in cleaned.split("\n") if line.strip()]
+    section_map = {
+        "Symptoms reported": "Assessment",
+        "Pain score": "Pain Score",
+        "Recommended Action": "Recommended Action",
+        "Doctor consultation": "Recommended Action",
+        "Precautions": "Precautions",
+        "Lifestyle & Wellness Suggestions": "Lifestyle",
+        "Warning Signs": "Warning Signs",
+        "Emergency Warning Signs": "Warning Signs",
+        "AI Confidence Level": "Confidence",
+        "Emergency Alert Recommendation": "Emergency Alert"
     }
-
-    key_map = {
-        "Symptoms reported": ("Symptoms", "value"),
-        "Symptoms explanation": ("Symptoms", "detail"),
-        "Pain score": ("Pain Score", "value"),
-        "Pain explanation": ("Pain Score", "detail"),
-        "Recommended Action": ("Recommended Action", "value"),
-        "Action explanation": ("Recommended Action", "detail"),
-        "Precautions": ("Precautions", "value"),
-        "Precautions explanation": ("Precautions", "detail"),
-        "Warning Signs": ("Warning Signs", "value"),
-        "Warning signs explanation": ("Warning Signs", "detail"),
-        "AI Confidence Level": ("Confidence", "value"),
-        "Confidence explanation": ("Confidence", "detail"),
-        "Duration": ("Duration", "value"),
-        "Duration explanation": ("Duration", "detail"),
-        "Existing Conditions": ("Existing Conditions", "value"),
-        "Condition explanation": ("Existing Conditions", "detail"),
-        "Clinical Concern": ("Clinical Concern", "value"),
-        "Clinical concern explanation": ("Clinical Concern", "detail"),
-        "Blood Pressure": ("Blood Pressure", "value"),
-        "Blood pressure explanation": ("Blood Pressure", "detail"),
-        "Blood Sugar": ("Blood Sugar", "value"),
-        "Blood sugar explanation": ("Blood Sugar", "detail"),
-    }
-
+    grouped = {}
+    current_title = "Assessment"
     for line in lines:
-        if ":" not in line:
-            continue
-        head, body = line.split(":", 1)
-        head = head.strip()
-        body = body.strip()
-        if head in key_map:
-            section, field = key_map[head]
-            merged[section][field] = body
-
-    return {k: v for k, v in merged.items() if v["value"] or v["detail"]}
+        if ":" in line:
+            head, body = line.split(":", 1)
+            head = head.strip()
+            body = body.strip()
+            title = section_map.get(head, head)
+            current_title = title
+            grouped.setdefault(title, []).append(body if body else head)
+        else:
+            grouped.setdefault(current_title, []).append(line)
+    return grouped
 
 st.markdown(f"""
 <style>
@@ -454,6 +369,7 @@ input::placeholder {{
     opacity: 1 !important;
 }}
 
+/* Main buttons */
 div.stButton > button,
 div.stDownloadButton > button,
 div[data-testid="stFormSubmitButton"] > button,
@@ -486,6 +402,7 @@ div[data-testid="stFormSubmitButton"] > button span,
     font-weight: 700 !important;
 }}
 
+/* File uploader */
 section[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] {{
     background: linear-gradient(180deg, #0f2340, #102a4c) !important;
     border: 1px solid rgba(96,165,250,0.32) !important;
@@ -521,6 +438,7 @@ section[data-testid="stFileUploader"] p {{
     color: #dbeafe !important;
 }}
 
+/* Fallback for Streamlit default buttons */
 button[kind="secondary"],
 button[kind="primary"] {{
     background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
@@ -692,9 +610,8 @@ button[kind="primary"] span {{
 
 .severity-grid {{
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 0.95rem;
-    align-items: stretch;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
 }}
 
 .severity-item {{
@@ -823,16 +740,7 @@ if st.session_state.page == "form":
             st.error("Please enter the blood sugar level because Diabetes is selected as an existing condition.")
             st.stop()
         patient_data = {
-            "name": name.strip(),
-            "age": int(age),
-            "gender": gender,
-            "symptoms": symptoms.strip(),
-            "duration": duration.strip(),
-            "pain": int(pain),
-            "conditions": ", ".join([c for c in conditions if c != "None"]) or "None",
-            "blood_sugar": sugar_level.strip(),
-            "blood_pressure": bp_level.strip(),
-            "uploaded_file": uploaded_file.name if uploaded_file else "",
+            "name": name.strip(), "age": int(age), "gender": gender, "symptoms": symptoms.strip(), "duration": duration.strip(), "pain": int(pain), "conditions": ", ".join([c for c in conditions if c != "None"]) or "None", "blood_sugar": sugar_level.strip(), "blood_pressure": bp_level.strip(), "uploaded_file": uploaded_file.name if uploaded_file else "",
         }
         with st.spinner("Analyzing symptoms..."):
             result = analyze_patient(patient_data)
@@ -846,7 +754,6 @@ elif st.session_state.page == "result":
     parsed = normalize_result(st.session_state.result)
     patient = st.session_state.patient_data
     urgency = urgency_theme(parsed["urgency"])
-
     patient_name = safe_text(patient.get("name", "-"))
     patient_age = safe_text(patient.get("age", "-"))
     patient_gender = safe_text(patient.get("gender", "-"))
@@ -861,31 +768,15 @@ elif st.session_state.page == "result":
     parsed_concern = safe_text(parsed["concern"])
     parsed_notes = safe_text(clean_analysis_text(parsed["notes"]))
     parsed_disclaimer = safe_text(parsed["disclaimer"])
-
     severity_sections = split_severity_sections(parsed["severity"])
-
     card_parts = []
-    for title, content in severity_sections.items():
-        value_html = ""
-        detail_html = ""
-        if content.get("value"):
-            value_html = f"<div style='margin-bottom:0.6rem; font-weight:700;'>• {safe_text(content['value'])}</div>"
-        if content.get("detail"):
-            detail_html = f"<div style='margin-top:0.3rem; color: var(--muted); line-height:1.8; font-size:0.95rem;'>{safe_text(content['detail'])}</div>"
-
-        card_html = f"""
-<div class="severity-item">
-    <div class="severity-item-title">{safe_text(title)}</div>
-    <div class="severity-item-body">
-        {value_html}
-        {detail_html}
-    </div>
-</div>
-"""
-        card_parts.append(card_html)
+    for title, items in severity_sections.items():
+        body_html = "".join(f"<div>• {safe_text(item)}</div>" for item in items if item.strip())
+        card_parts.append(f'<div class="severity-item"><div class="severity-item-title">{safe_text(title)}</div><div class="severity-item-body">{body_html}</div></div>')
     severity_cards = "".join(card_parts)
 
-    header_html = f"""
+    st.markdown('<div class="result-card">', unsafe_allow_html=True)
+    st.markdown(f"""
     <div class="result-header">
         <div>
             <div class="result-eyebrow">Clinical Triage Summary</div>
@@ -894,24 +785,7 @@ elif st.session_state.page == "result":
         </div>
         <div class="priority-badge {urgency['badge_class']}">{urgency['icon']} {urgency['label']}</div>
     </div>
-    """
-
-    strip_class = urgency["strip_class"]
-    urgency_html = f'<div class="medical-card"><h3>Urgency Level</h3><div class="status-strip {strip_class}">{parsed_urgency}</div></div>'
-    severity_html = f'<div class="medical-card"><h3>Symptom Severity Analysis</h3><div class="severity-grid">{severity_cards}</div></div>'
-    summary_html = f'<div class="medical-card"><h3>Clinical Summary</h3><div class="summary-grid"><div class="summary-card"><div class="summary-label">Possible Concern</div><div class="summary-value">{parsed_concern}</div></div><div class="summary-card"><div class="summary-label">Duration</div><div class="summary-value">{patient_duration}</div></div></div></div>'
-    notes_html = f'<div class="medical-card"><h3>Additional Notes</h3><div class="notes-box">{parsed_notes}</div></div>'
-    overview_html = f'<div class="medical-card"><h3>Patient Overview</h3><ul class="clean-list"><li><strong>Symptoms:</strong> {patient_symptoms}</li><li><strong>Existing conditions:</strong> {patient_conditions}</li><li><strong>Blood pressure:</strong> {patient_bp}</li><li><strong>Blood sugar:</strong> {patient_sugar}</li></ul></div>'
-
-    next_steps_items = [item.strip() for item in re.split(r"[.;]\s+", parsed["next_steps"]) if item.strip()]
-    if not next_steps_items:
-        next_steps_items = [parsed["next_steps"]]
-    steps_html_items = "".join(f"<li>{safe_text(item)}</li>" for item in next_steps_items)
-    steps_html = f'<div class="medical-card"><h3>Recommended Next Steps</h3><ul class="clean-list">{steps_html_items}</ul></div>'
-    notice_html = f'<div class="medical-card notice-card"><h3>Important Notice</h3><div class="notes-box">{parsed_disclaimer}</div></div>'
-
-    st.markdown('<div class="result-card">', unsafe_allow_html=True)
-    st.markdown(header_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
     top1, top2, top3, top4 = st.columns(4)
     top1.markdown(f'<div class="patient-chip"><div class="patient-chip-title">Patient</div><div class="patient-chip-value">{patient_name}</div></div>', unsafe_allow_html=True)
@@ -921,14 +795,18 @@ elif st.session_state.page == "result":
 
     left, right = st.columns([1.35, 0.95], gap="large")
     with left:
-        st.markdown(urgency_html, unsafe_allow_html=True)
-        st.markdown(severity_html, unsafe_allow_html=True)
-        st.markdown(summary_html, unsafe_allow_html=True)
-        st.markdown(notes_html, unsafe_allow_html=True)
+        st.markdown(f'<div class="medical-card"><h3>Urgency Level</h3><div class="status-strip {urgency["strip_class"]}">{parsed_urgency}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="medical-card"><h3>Symptom Severity Analysis</h3><div class="severity-grid">{severity_cards}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="medical-card"><h3>Clinical Summary</h3><div class="summary-grid"><div class="summary-card"><div class="summary-label">Possible Concern</div><div class="summary-value">{parsed_concern}</div></div><div class="summary-card"><div class="summary-label">Duration</div><div class="summary-value">{patient_duration}</div></div></div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="medical-card"><h3>Additional Notes</h3><div class="notes-box">{parsed_notes}</div></div>', unsafe_allow_html=True)
     with right:
-        st.markdown(overview_html, unsafe_allow_html=True)
-        st.markdown(steps_html, unsafe_allow_html=True)
-        st.markdown(notice_html, unsafe_allow_html=True)
+        st.markdown(f'<div class="medical-card"><h3>Patient Overview</h3><ul class="clean-list"><li><strong>Symptoms:</strong> {patient_symptoms}</li><li><strong>Existing conditions:</strong> {patient_conditions}</li><li><strong>Blood pressure:</strong> {patient_bp}</li><li><strong>Blood sugar:</strong> {patient_sugar}</li></ul></div>', unsafe_allow_html=True)
+        next_steps_items = [item.strip() for item in re.split(r"[.;]\s+", parsed["next_steps"]) if item.strip()]
+        if not next_steps_items:
+            next_steps_items = [parsed["next_steps"]]
+        steps_html_items = "".join(f"<li>{safe_text(item)}</li>" for item in next_steps_items)
+        st.markdown(f'<div class="medical-card"><h3>Recommended Next Steps</h3><ul class="clean-list">{steps_html_items}</ul></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="medical-card notice-card"><h3>Important Notice</h3><div class="notes-box">{parsed_disclaimer}</div></div>', unsafe_allow_html=True)
 
     st.download_button("📄 Download Medical Report", st.session_state.result, file_name="medical_report.txt", mime="text/plain")
 
