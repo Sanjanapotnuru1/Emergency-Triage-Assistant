@@ -1,14 +1,12 @@
 from groq import Groq
 from prompts import TRIAGE_PROMPT
-
+import streamlit as st
 # ==========================================
 # GROQ CLIENT
-# ==========================================
-
+# =====================================
 client = Groq(
-    api_key="Use Your API Number"
+    api_key=st.secrets["GROQ_API_KEY"]
 )
-
 # ==========================================
 # AI ANALYSIS FUNCTION
 # ==========================================
