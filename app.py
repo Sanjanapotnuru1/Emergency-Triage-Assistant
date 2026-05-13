@@ -9,36 +9,113 @@ try:
     from llm_engine import analyze_patient
 except Exception:
     def analyze_patient(patient_data):
-        symptoms = patient_data.get("symptoms", "")
-        pain = patient_data.get("pain", 0)
-        duration = patient_data.get("duration", "")
-        conditions = patient_data.get("conditions", "")
-        s = symptoms.lower()
-        emergency_terms = [
-            "chest pain", "breathing", "shortness of breath", "unconscious",
-            "stroke", "seizure", "bleeding", "lung infection"
-        ]
-        if any(term in s for term in emergency_terms) or pain >= 8:
-            level = "High"
-            concern = "Possible severe respiratory or cardiac emergency"
-            action = "Seek emergency medical care immediately or call local emergency services."
-        elif pain >= 5:
-            level = "Moderate"
-            concern = "Condition may require urgent clinical evaluation"
-            action = "Arrange urgent consultation with a doctor as soon as possible."
-        else:
-            level = "Low"
-            concern = "Symptoms may be manageable with standard medical consultation"
-            action = "Monitor symptoms and consult a clinician if symptoms persist or worsen."
+    symptoms = patient_data.get("symptoms", "")
+    pain = patient_data.get("pain", 0)
+    duration = patient_data.get("duration", "")
+    conditions = patient_data.get("conditions", "")
 
-        note_parts = []
-        if conditions and conditions != "None":
-            note_parts.append(f"Existing conditions: {conditions}.")
-        if duration:
-            note_parts.append(f"Duration: {duration}.")
-        notes = " ".join(note_parts) if note_parts else "No additional notes provided."
+    s = symptoms.lower()
 
-        return f"""
+    emergency_terms = [
+        "chest pain",
+        "breathing",
+        "shortness of breath",
+        "unconscious",
+        "stroke",
+        "seizure",
+        "bleeding",
+        "lung infection",
+        "vomiting",
+        "high fever"
+    ]
+
+    if any(term in s for term in emergency_terms) or pain >= 8:
+        level = "High"
+
+        concern = """
+The symptoms indicate a possible severe respiratory, cardiac, or infectious condition
+requiring immediate medical attention and continuous monitoring.
+"""
+
+        action = """
+Visit the nearest emergency department immediately or contact emergency medical services.
+Continuous monitoring is strongly recommended for the patient.
+Avoid self-medication unless prescribed by a certified healthcare professional.
+"""
+
+        precautions = """
+The patient should remain hydrated and avoid strenuous physical activity.
+Ensure adequate rest in a well-ventilated environment.
+Monitor temperature, breathing pattern, oxygen levels, and consciousness regularly.
+"""
+
+        warning = """
+Seek emergency intervention immediately if symptoms such as severe chest pain,
+persistent breathing difficulty, bluish lips, unconsciousness,
+continuous vomiting, confusion, or seizures occur.
+"""
+
+        confidence = "High"
+
+    elif pain >= 5:
+        level = "Moderate"
+
+        concern = """
+The symptoms may indicate a progressing infection, inflammatory condition,
+or moderate clinical complication that requires medical evaluation.
+"""
+
+        action = """
+Schedule an urgent consultation with a doctor within the next 24 hours.
+Follow prescribed medications properly and maintain symptom monitoring.
+"""
+
+        precautions = """
+Ensure proper hydration and balanced nutrition.
+Avoid stress and physical exertion until symptoms improve.
+Take adequate rest and continue monitoring body temperature and discomfort levels.
+"""
+
+        warning = """
+Seek immediate medical care if fever increases,
+pain becomes severe, breathing becomes difficult,
+or symptoms persist for an extended period.
+"""
+
+        confidence = "Medium"
+
+    else:
+        level = "Low"
+
+        concern = """
+The symptoms currently appear mild and manageable,
+but regular monitoring is recommended to prevent complications.
+"""
+
+        action = """
+Continue home care measures including hydration, rest, and proper nutrition.
+Consult a healthcare professional if symptoms worsen or do not improve.
+"""
+
+        precautions = """
+Maintain a healthy diet, adequate sleep, and hydration.
+Avoid exposure to infection-prone environments.
+"""
+
+        warning = """
+Consult a doctor if symptoms persist for more than a few days,
+pain increases, or additional symptoms develop.
+"""
+
+        confidence = "Medium"
+
+    notes = f"""
+Existing Conditions: {conditions if conditions else 'None'}.
+Duration of Symptoms: {duration if duration else 'Not specified'}.
+Patient should continue observation and maintain follow-up if required.
+"""
+
+    return f"""
 Emergency Triage Assessment for {patient_data.get('name', 'Patient')}
 
 AI-Detected Urgency Level:
@@ -48,21 +125,39 @@ Possible Medical Concern:
 {concern}
 
 Symptom Severity Analysis:
-Symptoms reported: {symptoms}
-Pain score: {pain}/10
-Recommended Action: {action}
-Precautions: Rest, hydration, and close symptom monitoring are advised.
-Warning Signs: Trouble breathing, chest pain, confusion, uncontrolled vomiting, or severe weakness.
-AI Confidence Level: Medium
+
+Symptoms Reported:
+{symptoms}
+
+Pain Score:
+Patient reported pain intensity of {pain}/10 which indicates the current discomfort severity level.
+
+Clinical Interpretation:
+The reported symptoms suggest that the patient's condition should be monitored carefully for progression or complications.
+
+Recommended Action:
+{action}
+
+Precautions:
+{precautions}
+
+Emergency Warning Signs:
+{warning}
+
+AI Confidence Level:
+{confidence}
 
 Recommended Next Steps:
-{action}
+- Maintain regular monitoring of symptoms
+- Follow medical guidance strictly
+- Seek professional consultation if condition worsens
+- Keep emergency contacts informed if symptoms escalate
 
 Additional Notes:
 {notes}
 
 Disclaimer:
-This tool is for informational triage support only and is not a medical diagnosis.
+This AI-generated report is intended only for preliminary healthcare triage support and should not replace professional medical diagnosis or treatment.
 """.strip()
 
 st.set_page_config(page_title="Emergency Triage Assistant", page_icon="🚑", layout="wide")
@@ -213,34 +308,28 @@ def clean_analysis_text(text):
     return "\n".join(formatted)
 
 def split_severity_sections(text):
-    cleaned = clean_analysis_text(text)
-    lines = [line.replace("• ", "").strip() for line in cleaned.split("\n") if line.strip()]
-    section_map = {
-        "Symptoms reported": "Assessment",
-        "Pain score": "Pain Score",
-        "Recommended Action": "Recommended Action",
-        "Doctor consultation": "Recommended Action",
-        "Precautions": "Precautions",
-        "Lifestyle & Wellness Suggestions": "Lifestyle",
-        "Warning Signs": "Warning Signs",
-        "Emergency Warning Signs": "Warning Signs",
-        "AI Confidence Level": "Confidence",
-        "Emergency Alert Recommendation": "Emergency Alert"
-    }
-    grouped = {}
-    current_title = "Assessment"
-    for line in lines:
-        if ":" in line:
-            head, body = line.split(":", 1)
-            head = head.strip()
-            body = body.strip()
-            title = section_map.get(head, head)
-            current_title = title
-            grouped.setdefault(title, []).append(body if body else head)
-        else:
-            grouped.setdefault(current_title, []).append(line)
-    return grouped
 
+    patterns = {
+        "Symptoms Reported": r"Symptoms Reported:(.*?)(?=Pain Score:|$)",
+        "Pain Score": r"Pain Score:(.*?)(?=Clinical Interpretation:|$)",
+        "Clinical Interpretation": r"Clinical Interpretation:(.*?)(?=Recommended Action:|$)",
+        "Recommended Action": r"Recommended Action:(.*?)(?=Precautions:|$)",
+        "Precautions": r"Precautions:(.*?)(?=Emergency Warning Signs:|$)",
+        "Emergency Warning Signs": r"Emergency Warning Signs:(.*?)(?=AI Confidence Level:|$)",
+        "AI Confidence Level": r"AI Confidence Level:(.*?)(?=$)"
+    }
+
+    sections = {}
+
+    for title, pattern in patterns.items():
+        match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+
+        if match:
+            content = match.group(1).strip()
+            content = re.sub(r"\n+", " ", content)
+            sections[title] = content
+
+    return sections
 st.markdown(f"""
 <style>
 :root {{
@@ -481,6 +570,46 @@ button[kind="primary"] span {{
     gap: 1rem;
     margin-bottom: 1rem;
 }}
+.severity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.severity-item {
+    background: linear-gradient(145deg, var(--card-alt), var(--soft-card));
+    border-radius: 20px;
+    padding: 1.2rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+    transition: 0.3s ease;
+}
+
+.severity-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(37,99,235,0.16);
+}
+
+.severity-icon {
+    font-size: 1.7rem;
+    margin-bottom: 0.8rem;
+}
+
+.severity-item-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 0.7rem;
+}
+
+.severity-item-body {
+    font-size: 0.98rem;
+    line-height: 1.8;
+    color: var(--text);
+}
 
 .result-eyebrow {{
     color: var(--muted);
@@ -769,11 +898,38 @@ elif st.session_state.page == "result":
     parsed_notes = safe_text(clean_analysis_text(parsed["notes"]))
     parsed_disclaimer = safe_text(parsed["disclaimer"])
     severity_sections = split_severity_sections(parsed["severity"])
-    card_parts = []
-    for title, items in severity_sections.items():
-        body_html = "".join(f"<div>• {safe_text(item)}</div>" for item in items if item.strip())
-        card_parts.append(f'<div class="severity-item"><div class="severity-item-title">{safe_text(title)}</div><div class="severity-item-body">{body_html}</div></div>')
-    severity_cards = "".join(card_parts)
+
+severity_cards = ""
+
+icons = {
+    "Symptoms Reported": "🩺",
+    "Pain Score": "📊",
+    "Clinical Interpretation": "📋",
+    "Recommended Action": "💊",
+    "Precautions": "⚠️",
+    "Emergency Warning Signs": "🚨",
+    "AI Confidence Level": "🤖"
+}
+
+for title, content in severity_sections.items():
+
+    severity_cards += f"""
+    <div class="severity-item">
+
+        <div class="severity-icon">
+            {icons.get(title, "📌")}
+        </div>
+
+        <div class="severity-item-title">
+            {title}
+        </div>
+
+        <div class="severity-item-body">
+            {content}
+        </div>
+
+    </div>
+    """
 
     st.markdown('<div class="result-card">', unsafe_allow_html=True)
     st.markdown(f"""
