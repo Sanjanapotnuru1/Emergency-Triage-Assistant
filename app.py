@@ -323,6 +323,65 @@ def split_severity_sections(text):
             sections[title] = content
     return sections
 
+def build_detailed_severity_sections(severity_sections, patient):
+    detailed = {}
+
+    symptoms = patient.get("symptoms", "Not provided")
+    duration = patient.get("duration", "Not specified") or "Not specified"
+    pain = patient.get("pain", "Not provided")
+    conditions = patient.get("conditions", "None") or "None"
+    bp = patient.get("blood_pressure", "Not provided") or "Not provided"
+    sugar = patient.get("blood_sugar", "Not provided") or "Not provided"
+
+    for title, content in severity_sections.items():
+        content = content.strip()
+
+        if title == "Symptoms Reported":
+            detailed[title] = (
+                f"Primary symptoms: {symptoms}.\n"
+                f"Reported duration: {duration}.\n"
+                f"Existing medical conditions: {conditions}.\n"
+                f"Clinical note: Symptoms should be interpreted along with duration, intensity, and relevant history."
+            )
+        elif title == "Pain Score":
+            detailed[title] = (
+                f"Patient-reported pain level: {pain}/10.\n"
+                f"Interpretation: This score reflects the current discomfort severity and should be monitored for escalation.\n"
+                f"Supporting context: Persistent pain with associated symptoms may require faster medical review."
+            )
+        elif title == "Clinical Interpretation":
+            detailed[title] = (
+                f"Assessment summary: {content}.\n"
+                f"Relevant conditions: {conditions}.\n"
+                f"Clinical note: Overall interpretation should be correlated with physical examination and vital signs."
+            )
+        elif title == "Recommended Action":
+            detailed[title] = (
+                f"Immediate recommendation: {content}.\n"
+                f"Patient guidance: Follow the advised care pathway without delay if symptoms worsen.\n"
+                f"Escalation advice: Seek urgent in-person evaluation for breathing issues, worsening pain, or reduced responsiveness."
+            )
+        elif title == "Precautions":
+            detailed[title] = (
+                f"Precautionary care: {content}.\n"
+                f"Monitoring advice: Track temperature, hydration, pain trend, breathing comfort, and general weakness.\n"
+                f"Special consideration: Blood pressure reading: {bp}; Blood sugar level: {sugar}."
+            )
+        elif title == "Warning Signs":
+            detailed[title] = (
+                f"Emergency warning signs: {content}.\n"
+                f"Action note: If any warning sign appears suddenly or becomes severe, seek emergency care immediately."
+            )
+        elif title == "AI Confidence Level":
+            detailed[title] = (
+                f"Model confidence: {content}.\n"
+                f"Interpretation note: Confidence reflects pattern matching from reported inputs and does not replace physician diagnosis."
+            )
+        else:
+            detailed[title] = content
+
+    return detailed
+
 st.markdown(f"""
 <style>
 :root {{
@@ -645,7 +704,7 @@ div[data-testid="stFormSubmitButton"] > button span,
     border: 1px solid var(--border);
     border-radius: 18px;
     padding: 1rem;
-    min-height: 220px;
+    min-height: 260px;
     box-shadow: 0 10px 20px rgba(2, 6, 23, 0.06);
     margin-bottom: 1rem;
 }}
@@ -666,9 +725,10 @@ div[data-testid="stFormSubmitButton"] > button span,
 
 .streamlit-severity-body {{
     color: var(--text);
-    line-height: 1.9;
-    font-size: 0.98rem;
+    line-height: 1.85;
+    font-size: 0.96rem;
     word-break: break-word;
+    white-space: pre-line;
 }}
 
 .clean-list {{
@@ -821,7 +881,9 @@ elif st.session_state.page == "result":
     parsed_concern = safe_text(parsed["concern"])
     parsed_notes = safe_text(clean_analysis_text(parsed["notes"]))
     parsed_disclaimer = safe_text(parsed["disclaimer"])
+
     severity_sections = split_severity_sections(parsed["severity"])
+    detailed_sections = build_detailed_severity_sections(severity_sections, patient)
 
     icons = {
         "Symptoms Reported": "🩺",
@@ -861,22 +923,22 @@ elif st.session_state.page == "result":
         )
 
         st.markdown('<div class="medical-card"><h3>Symptom Severity Analysis</h3></div>', unsafe_allow_html=True)
-        severity_items = list(severity_sections.items())
 
-        for i in range(0, len(severity_items), 2):
+        detailed_items = list(detailed_sections.items())
+        for i in range(0, len(detailed_items), 2):
             cols = st.columns(2)
             for j in range(2):
-                if i + j < len(severity_items):
-                    title, content = severity_items[i + j]
+                if i + j < len(detailed_items):
+                    title, content = detailed_items[i + j]
                     with cols[j]:
                         st.markdown(
-                            f'''
+                            f"""
                             <div class="streamlit-severity-card">
                                 <div class="streamlit-severity-icon">{icons.get(title, "📌")}</div>
                                 <div class="streamlit-severity-title">{safe_text(title)}</div>
                                 <div class="streamlit-severity-body">{safe_text(content)}</div>
                             </div>
-                            ''',
+                            """,
                             unsafe_allow_html=True
                         )
 
@@ -884,6 +946,7 @@ elif st.session_state.page == "result":
             f'<div class="medical-card"><h3>Clinical Summary</h3><div class="summary-grid"><div class="summary-card"><div class="summary-label">Possible Concern</div><div class="summary-value">{parsed_concern}</div></div><div class="summary-card"><div class="summary-label">Duration</div><div class="summary-value">{patient_duration}</div></div></div></div>',
             unsafe_allow_html=True
         )
+
         st.markdown(
             f'<div class="medical-card"><h3>Additional Notes</h3><div class="notes-box">{parsed_notes}</div></div>',
             unsafe_allow_html=True
@@ -904,6 +967,7 @@ elif st.session_state.page == "result":
             f'<div class="medical-card"><h3>Recommended Next Steps</h3><ul class="clean-list">{steps_html_items}</ul></div>',
             unsafe_allow_html=True
         )
+
         st.markdown(
             f'<div class="medical-card notice-card"><h3>Important Notice</h3><div class="notes-box">{parsed_disclaimer}</div></div>',
             unsafe_allow_html=True
