@@ -219,6 +219,36 @@ def clean_analysis_text(text):
             formatted.append(f"• {line}")
     return "\n".join(formatted)
 
+def expand_section_theory(title, items):
+    raw = ", ".join(str(x).strip() for x in items if str(x).strip())
+    title_key = title.strip().lower()
+
+    if title_key == "symptoms":
+        return "These reported symptoms suggest the patient may be experiencing a clinically important illness pattern. When multiple symptoms occur together, especially breathing difficulty, fever, vomiting, weakness, or neurological complaints, the overall triage concern becomes higher because the combination may reflect systemic stress rather than a minor isolated problem."
+    if title_key == "pain score":
+        return "This pain score helps estimate current symptom burden and guides urgency. Mid-to-high pain scores generally deserve closer observation, and the score becomes more concerning when it appears alongside breathing problems, fever, repeated vomiting, chest discomfort, or severe fatigue."
+    if title_key == "recommended action":
+        return "This action is being advised because the present symptom combination may require prompt medical assessment. In triage systems, the recommended action is based not only on one symptom but on the overall pattern, intensity, and associated risk factors."
+    if title_key == "precautions":
+        return "These precautions are intended to reduce immediate risk while the patient is being monitored or prepared for medical review. Supportive steps such as rest, hydration, avoidance of exertion, and close observation can help prevent worsening while waiting for professional evaluation."
+    if title_key == "warning signs":
+        return "These warning signs are important because they can indicate clinical deterioration or possible emergency progression. If any of these features appear, intensify, or occur together, urgent in-person medical evaluation should not be delayed."
+    if title_key == "confidence":
+        return "This confidence level reflects how strongly the symptom pattern matches the triage rules used by the system. It is helpful for guidance, but it does not replace medical examination, diagnostic testing, or clinician judgment."
+    if title_key == "duration":
+        return "Symptom duration is clinically relevant because persistent problems are less likely to represent a brief self-limited episode. A longer duration can point toward ongoing infection, uncontrolled inflammation, dehydration, cardiovascular strain, or another condition that needs assessment."
+    if title_key == "existing conditions":
+        return "Pre-existing medical conditions can increase the patient’s risk and may reduce the margin of safety during an acute episode. Chronic illness often changes how aggressively symptoms should be interpreted, even when the current complaint initially appears moderate."
+    if title_key == "triage priority":
+        return "This priority level summarizes how urgently the overall case should be reviewed. It is based on the combination of symptoms, severity indicators, duration, and associated risk factors rather than any single finding alone."
+    if title_key == "clinical concern":
+        return "This clinical concern represents the main medical interpretation suggested by the symptom profile. It is not a confirmed diagnosis, but it highlights the most important category of illness or emergency risk that should be considered first."
+    if title_key == "blood pressure":
+        return "Blood pressure is a key triage indicator because markedly abnormal readings may reflect cardiovascular stress or an active medical emergency. High values become more concerning when they are associated with headache, chest symptoms, breathing difficulty, confusion, or vomiting."
+    if title_key == "blood sugar":
+        return "Blood sugar readings are important because abnormal levels can rapidly worsen weakness, confusion, dehydration, and overall medical stability. In a patient with diabetes or acute illness, this information can meaningfully affect urgency and next-step recommendations."
+    return "This section provides additional clinical context to help interpret the triage finding in a more meaningful and medically readable way."
+
 def split_severity_sections(text):
     text = text.replace("Symptoms reported:", "\nSymptoms reported:")
     text = text.replace("Pain score:", "\nPain score:")
@@ -814,13 +844,19 @@ elif st.session_state.page == "result":
     card_parts = []
     for title, items in severity_sections.items():
         item_html = "".join(
-            f"<div style='margin-bottom:0.4rem;'>• {safe_text(item)}</div>"
+            f"<div style='margin-bottom:0.45rem;'>• {safe_text(item)}</div>"
             for item in items if str(item).strip()
         )
+        theory_text = safe_text(expand_section_theory(title, items))
         card_html = f"""
 <div class="severity-item">
     <div class="severity-item-title">{safe_text(title)}</div>
-    <div class="severity-item-body">{item_html}</div>
+    <div class="severity-item-body">
+        {item_html}
+        <div style='margin-top:0.8rem; color: var(--muted); line-height:1.75; font-size:0.94rem;'>
+            {theory_text}
+        </div>
+    </div>
 </div>
 """
         card_parts.append(card_html)
