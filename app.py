@@ -305,10 +305,11 @@ def clean_analysis_text(text):
 def split_severity_sections(text):
     patterns = {
         "Symptoms Reported": r"Symptoms Reported:\s*(.*?)(?=Pain Score:)",
-        "Pain Score": r"Pain Score:\s*(.*?)(?=Recommended Action:)",
+        "Pain Score": r"Pain Score:\s*(.*?)(?=Clinical Interpretation:|Recommended Action:)",
+        "Clinical Interpretation": r"Clinical Interpretation:\s*(.*?)(?=Recommended Action:)",
         "Recommended Action": r"Recommended Action:\s*(.*?)(?=Precautions:)",
         "Precautions": r"Precautions:\s*(.*?)(?=Warning Signs:|Emergency Warning Signs:|AI Confidence Level:)",
-        "Warning Signs": r"(?:Warning Signs|Emergency Warning Signs):\s*(.*?)(?=AI Confidence Level:)",
+        "Warning Signs": r"(?:Warning Signs|Emergency Warning Signs):\s*(.*?)(?=AI Confidence Level:|Recommended Next Steps:)",
         "AI Confidence Level": r"AI Confidence Level:\s*(.*?)(?=Recommended Next Steps:|$)",
     }
 
@@ -482,53 +483,6 @@ div[data-testid="stFormSubmitButton"] > button span,
     font-weight: 700 !important;
 }}
 
-section[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] {{
-    background: linear-gradient(180deg, #0f2340, #102a4c) !important;
-    border: 1px solid rgba(96,165,250,0.32) !important;
-    border-radius: 16px !important;
-    padding: 0.85rem !important;
-}}
-
-section[data-testid="stFileUploader"] button,
-section[data-testid="stBaseButton-secondary"] {{
-    background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(96,165,250,0.35) !important;
-    border-radius: 12px !important;
-    box-shadow: 0 6px 16px rgba(37,99,235,0.22) !important;
-}}
-
-section[data-testid="stFileUploader"] button:hover,
-section[data-testid="stBaseButton-secondary"]:hover {{
-    background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
-    color: #ffffff !important;
-}}
-
-section[data-testid="stFileUploader"] button span,
-section[data-testid="stBaseButton-secondary"] span {{
-    color: #ffffff !important;
-    font-weight: 700 !important;
-}}
-
-section[data-testid="stFileUploader"] small,
-section[data-testid="stFileUploader"] div,
-section[data-testid="stFileUploader"] span,
-section[data-testid="stFileUploader"] p {{
-    color: #dbeafe !important;
-}}
-
-button[kind="secondary"],
-button[kind="primary"] {{
-    background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(96,165,250,0.35) !important;
-}}
-
-button[kind="secondary"] span,
-button[kind="primary"] span {{
-    color: #ffffff !important;
-}}
-
 .patient-chip {{
     background: var(--soft-card);
     border: 1px solid var(--border);
@@ -686,37 +640,33 @@ button[kind="primary"] span {{
     white-space: pre-wrap;
 }}
 
-.severity-grid {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 1rem;
-}}
-
-.severity-item {{
+.streamlit-severity-card {{
     background: linear-gradient(145deg, var(--card-alt), var(--soft-card));
     border: 1px solid var(--border);
     border-radius: 18px;
     padding: 1rem;
+    min-height: 220px;
     box-shadow: 0 10px 20px rgba(2, 6, 23, 0.06);
+    margin-bottom: 1rem;
 }}
 
-.severity-icon {{
+.streamlit-severity-icon {{
     font-size: 1.5rem;
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.6rem;
 }}
 
-.severity-item-title {{
+.streamlit-severity-title {{
     font-size: 0.84rem;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 800;
-    margin-bottom: 0.55rem;
+    margin-bottom: 0.65rem;
 }}
 
-.severity-item-body {{
+.streamlit-severity-body {{
     color: var(--text);
-    line-height: 1.8;
+    line-height: 1.9;
     font-size: 0.98rem;
     word-break: break-word;
 }}
@@ -764,8 +714,7 @@ button[kind="primary"] span {{
         align-items: stretch;
     }}
 
-    .summary-grid,
-    .severity-grid {{
+    .summary-grid {{
         grid-template-columns: 1fr;
     }}
 }}
@@ -880,22 +829,9 @@ elif st.session_state.page == "result":
         "Clinical Interpretation": "📋",
         "Recommended Action": "💊",
         "Precautions": "⚠️",
-        "Emergency Warning Signs": "🚨",
+        "Warning Signs": "🚨",
         "AI Confidence Level": "🤖",
     }
-
-    card_parts = []
-    for title, content in severity_sections.items():
-        card_parts.append(
-            f'''
-            <div class="severity-item">
-                <div class="severity-icon">{icons.get(title, "📌")}</div>
-                <div class="severity-item-title">{safe_text(title)}</div>
-                <div class="severity-item-body">{safe_text(content)}</div>
-            </div>
-            '''
-        )
-    severity_cards = "".join(card_parts)
 
     st.markdown('<div class="result-card">', unsafe_allow_html=True)
 
@@ -923,10 +859,27 @@ elif st.session_state.page == "result":
             f'<div class="medical-card"><h3>Urgency Level</h3><div class="status-strip {urgency["strip_class"]}">{parsed_urgency}</div></div>',
             unsafe_allow_html=True
         )
-        st.markdown(
-            f'<div class="medical-card"><h3>Symptom Severity Analysis</h3><div class="severity-grid">{severity_cards}</div></div>',
-            unsafe_allow_html=True
-        )
+
+        st.markdown('<div class="medical-card"><h3>Symptom Severity Analysis</h3></div>', unsafe_allow_html=True)
+        severity_items = list(severity_sections.items())
+
+        for i in range(0, len(severity_items), 2):
+            cols = st.columns(2)
+            for j in range(2):
+                if i + j < len(severity_items):
+                    title, content = severity_items[i + j]
+                    with cols[j]:
+                        st.markdown(
+                            f'''
+                            <div class="streamlit-severity-card">
+                                <div class="streamlit-severity-icon">{icons.get(title, "📌")}</div>
+                                <div class="streamlit-severity-title">{safe_text(title)}</div>
+                                <div class="streamlit-severity-body">{safe_text(content)}</div>
+                            </div>
+                            ''',
+                            unsafe_allow_html=True
+                        )
+
         st.markdown(
             f'<div class="medical-card"><h3>Clinical Summary</h3><div class="summary-grid"><div class="summary-card"><div class="summary-label">Possible Concern</div><div class="summary-value">{parsed_concern}</div></div><div class="summary-card"><div class="summary-label">Duration</div><div class="summary-value">{patient_duration}</div></div></div></div>',
             unsafe_allow_html=True
