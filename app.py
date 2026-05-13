@@ -13,6 +13,8 @@ except Exception:
         pain = patient_data.get("pain", 0)
         duration = patient_data.get("duration", "")
         conditions = patient_data.get("conditions", "")
+        bp = patient_data.get("blood_pressure", "")
+        sugar = patient_data.get("blood_sugar", "")
         s = symptoms.lower()
         emergency_terms = [
             "chest pain", "breathing", "shortness of breath", "unconscious",
@@ -30,6 +32,18 @@ except Exception:
             level = "Low"
             concern = "Symptoms may be manageable with standard medical consultation"
             action = "Monitor symptoms and consult a clinician if symptoms persist or worsen."
+
+        symptoms_expl = f"The patient reports {symptoms}. This symptom cluster should be interpreted in the context of duration, pain severity, and associated risk factors because multiple simultaneous complaints may indicate a more significant clinical issue than an isolated mild symptom."
+        pain_expl = f"The reported pain score is {pain}/10. This level helps estimate current symptom burden, and a higher score generally increases concern when it appears alongside breathing difficulty, vomiting, fever, weakness, chest discomfort, or persistent illness."
+        action_expl = f"The recommended action is: {action} This recommendation is based on the overall symptom pattern and the possibility that the current presentation may require prompt medical evaluation rather than routine observation alone."
+        precautions_expl = "Precautions include rest, hydration, and close monitoring of symptoms. The patient should avoid physical exertion, watch for worsening condition, and seek immediate care if new danger signs appear."
+        warning_expl = "Key warning signs include trouble breathing, chest pain, confusion, uncontrolled vomiting, severe weakness, reduced responsiveness, or any rapid worsening of symptoms. These features may indicate clinical deterioration and should not be ignored."
+        confidence_expl = "The confidence level is Medium. This means the case pattern is sufficiently concerning for triage guidance, but the assessment still requires confirmation through direct clinical evaluation and, if needed, vital signs or diagnostic testing."
+        duration_expl = f"The reported duration is {duration or 'not specified'}. Duration matters because symptoms that persist for longer periods may reflect an ongoing inflammatory, infectious, metabolic, or cardiovascular problem rather than a brief self-limited episode."
+        condition_expl = f"Existing conditions: {conditions or 'None'}. Pre-existing disease can increase the patient's risk and may lower the threshold for urgent evaluation, especially if the current complaint could worsen the underlying condition."
+        concern_expl = f"The leading clinical concern is: {concern}. This is not a confirmed diagnosis, but it represents the most important risk category suggested by the available symptom profile."
+        bp_expl = f"Blood pressure reading: {bp or 'Not provided'}. Blood pressure is clinically useful in triage because abnormal values can signal cardiovascular stress, uncontrolled hypertension, or increased emergency risk when combined with headache, chest symptoms, or breathing difficulty."
+        sugar_expl = f"Blood sugar reading: {sugar or 'Not provided'}. Blood sugar information is relevant because abnormal levels can worsen weakness, dehydration, confusion, or overall instability, especially in patients with diabetes or acute illness."
 
         note_parts = []
         if conditions and conditions != "None":
@@ -49,11 +63,27 @@ Possible Medical Concern:
 
 Symptom Severity Analysis:
 Symptoms reported: {symptoms}
+Symptoms explanation: {symptoms_expl}
 Pain score: {pain}/10
+Pain explanation: {pain_expl}
 Recommended Action: {action}
+Action explanation: {action_expl}
 Precautions: Rest, hydration, and close symptom monitoring are advised.
+Precautions explanation: {precautions_expl}
 Warning Signs: Trouble breathing, chest pain, confusion, uncontrolled vomiting, or severe weakness.
+Warning signs explanation: {warning_expl}
 AI Confidence Level: Medium
+Confidence explanation: {confidence_expl}
+Duration: {duration or 'Not specified'}
+Duration explanation: {duration_expl}
+Existing Conditions: {conditions or 'None'}
+Condition explanation: {condition_expl}
+Clinical Concern: {concern}
+Clinical concern explanation: {concern_expl}
+Blood Pressure: {bp or 'Not provided'}
+Blood pressure explanation: {bp_expl}
+Blood Sugar: {sugar or 'Not provided'}
+Blood sugar explanation: {sugar_expl}
 
 Recommended Next Steps:
 {action}
@@ -219,43 +249,29 @@ def clean_analysis_text(text):
             formatted.append(f"• {line}")
     return "\n".join(formatted)
 
-def expand_section_theory(title, items):
-    raw = ", ".join(str(x).strip() for x in items if str(x).strip())
-    title_key = title.strip().lower()
-
-    if title_key == "symptoms":
-        return "These reported symptoms suggest the patient may be experiencing a clinically important illness pattern. When multiple symptoms occur together, especially breathing difficulty, fever, vomiting, weakness, or neurological complaints, the overall triage concern becomes higher because the combination may reflect systemic stress rather than a minor isolated problem."
-    if title_key == "pain score":
-        return "This pain score helps estimate current symptom burden and guides urgency. Mid-to-high pain scores generally deserve closer observation, and the score becomes more concerning when it appears alongside breathing problems, fever, repeated vomiting, chest discomfort, or severe fatigue."
-    if title_key == "recommended action":
-        return "This action is being advised because the present symptom combination may require prompt medical assessment. In triage systems, the recommended action is based not only on one symptom but on the overall pattern, intensity, and associated risk factors."
-    if title_key == "precautions":
-        return "These precautions are intended to reduce immediate risk while the patient is being monitored or prepared for medical review. Supportive steps such as rest, hydration, avoidance of exertion, and close observation can help prevent worsening while waiting for professional evaluation."
-    if title_key == "warning signs":
-        return "These warning signs are important because they can indicate clinical deterioration or possible emergency progression. If any of these features appear, intensify, or occur together, urgent in-person medical evaluation should not be delayed."
-    if title_key == "confidence":
-        return "This confidence level reflects how strongly the symptom pattern matches the triage rules used by the system. It is helpful for guidance, but it does not replace medical examination, diagnostic testing, or clinician judgment."
-    if title_key == "duration":
-        return "Symptom duration is clinically relevant because persistent problems are less likely to represent a brief self-limited episode. A longer duration can point toward ongoing infection, uncontrolled inflammation, dehydration, cardiovascular strain, or another condition that needs assessment."
-    if title_key == "existing conditions":
-        return "Pre-existing medical conditions can increase the patient’s risk and may reduce the margin of safety during an acute episode. Chronic illness often changes how aggressively symptoms should be interpreted, even when the current complaint initially appears moderate."
-    if title_key == "triage priority":
-        return "This priority level summarizes how urgently the overall case should be reviewed. It is based on the combination of symptoms, severity indicators, duration, and associated risk factors rather than any single finding alone."
-    if title_key == "clinical concern":
-        return "This clinical concern represents the main medical interpretation suggested by the symptom profile. It is not a confirmed diagnosis, but it highlights the most important category of illness or emergency risk that should be considered first."
-    if title_key == "blood pressure":
-        return "Blood pressure is a key triage indicator because markedly abnormal readings may reflect cardiovascular stress or an active medical emergency. High values become more concerning when they are associated with headache, chest symptoms, breathing difficulty, confusion, or vomiting."
-    if title_key == "blood sugar":
-        return "Blood sugar readings are important because abnormal levels can rapidly worsen weakness, confusion, dehydration, and overall medical stability. In a patient with diabetes or acute illness, this information can meaningfully affect urgency and next-step recommendations."
-    return "This section provides additional clinical context to help interpret the triage finding in a more meaningful and medically readable way."
-
 def split_severity_sections(text):
     text = text.replace("Symptoms reported:", "\nSymptoms reported:")
+    text = text.replace("Symptoms explanation:", "\nSymptoms explanation:")
     text = text.replace("Pain score:", "\nPain score:")
+    text = text.replace("Pain explanation:", "\nPain explanation:")
     text = text.replace("Recommended Action:", "\nRecommended Action:")
+    text = text.replace("Action explanation:", "\nAction explanation:")
     text = text.replace("Precautions:", "\nPrecautions:")
+    text = text.replace("Precautions explanation:", "\nPrecautions explanation:")
     text = text.replace("Warning Signs:", "\nWarning Signs:")
+    text = text.replace("Warning signs explanation:", "\nWarning signs explanation:")
     text = text.replace("AI Confidence Level:", "\nAI Confidence Level:")
+    text = text.replace("Confidence explanation:", "\nConfidence explanation:")
+    text = text.replace("Duration:", "\nDuration:")
+    text = text.replace("Duration explanation:", "\nDuration explanation:")
+    text = text.replace("Existing Conditions:", "\nExisting Conditions:")
+    text = text.replace("Condition explanation:", "\nCondition explanation:")
+    text = text.replace("Clinical Concern:", "\nClinical Concern:")
+    text = text.replace("Clinical concern explanation:", "\nClinical concern explanation:")
+    text = text.replace("Blood Pressure:", "\nBlood Pressure:")
+    text = text.replace("Blood pressure explanation:", "\nBlood pressure explanation:")
+    text = text.replace("Blood Sugar:", "\nBlood Sugar:")
+    text = text.replace("Blood sugar explanation:", "\nBlood sugar explanation:")
     text = text.replace("Doctor consultation:", "\nDoctor consultation:")
     text = text.replace("Emergency Alert Recommendation:", "\nEmergency Alert Recommendation:")
 
@@ -263,14 +279,30 @@ def split_severity_sections(text):
 
     section_map = {
         "Symptoms reported": "Symptoms",
+        "Symptoms explanation": "Symptoms Explanation",
         "Pain score": "Pain Score",
+        "Pain explanation": "Pain Explanation",
         "Recommended Action": "Recommended Action",
+        "Action explanation": "Action Explanation",
         "Doctor consultation": "Doctor Consultation",
         "Precautions": "Precautions",
+        "Precautions explanation": "Precautions Explanation",
         "Lifestyle & Wellness Suggestions": "Lifestyle",
         "Warning Signs": "Warning Signs",
+        "Warning signs explanation": "Warning Signs Explanation",
         "Emergency Warning Signs": "Warning Signs",
         "AI Confidence Level": "Confidence",
+        "Confidence explanation": "Confidence Explanation",
+        "Duration": "Duration",
+        "Duration explanation": "Duration Explanation",
+        "Existing Conditions": "Existing Conditions",
+        "Condition explanation": "Condition Explanation",
+        "Clinical Concern": "Clinical Concern",
+        "Clinical concern explanation": "Clinical Concern Explanation",
+        "Blood Pressure": "Blood Pressure",
+        "Blood pressure explanation": "Blood Pressure Explanation",
+        "Blood Sugar": "Blood Sugar",
+        "Blood sugar explanation": "Blood Sugar Explanation",
         "Emergency Alert Recommendation": "Emergency Alert"
     }
 
@@ -830,16 +862,6 @@ elif st.session_state.page == "result":
     parsed_disclaimer = safe_text(parsed["disclaimer"])
 
     severity_sections = split_severity_sections(parsed["severity"])
-    severity_sections["Duration"] = [patient.get("duration", "Not specified") or "Not specified"]
-    severity_sections["Existing Conditions"] = [patient.get("conditions", "None") or "None"]
-    severity_sections["Triage Priority"] = [parsed["urgency"]]
-    severity_sections["Clinical Concern"] = [parsed["concern"]]
-
-    if patient.get("blood_pressure"):
-        severity_sections["Blood Pressure"] = [patient["blood_pressure"]]
-
-    if patient.get("blood_sugar"):
-        severity_sections["Blood Sugar"] = [patient["blood_sugar"]]
 
     card_parts = []
     for title, items in severity_sections.items():
@@ -847,15 +869,11 @@ elif st.session_state.page == "result":
             f"<div style='margin-bottom:0.45rem;'>• {safe_text(item)}</div>"
             for item in items if str(item).strip()
         )
-        theory_text = safe_text(expand_section_theory(title, items))
         card_html = f"""
 <div class="severity-item">
     <div class="severity-item-title">{safe_text(title)}</div>
     <div class="severity-item-body">
         {item_html}
-        <div style='margin-top:0.8rem; color: var(--muted); line-height:1.75; font-size:0.94rem;'>
-            {theory_text}
-        </div>
     </div>
 </div>
 """
