@@ -272,58 +272,59 @@ def split_severity_sections(text):
     text = text.replace("Blood pressure explanation:", "\nBlood pressure explanation:")
     text = text.replace("Blood Sugar:", "\nBlood Sugar:")
     text = text.replace("Blood sugar explanation:", "\nBlood sugar explanation:")
-    text = text.replace("Doctor consultation:", "\nDoctor consultation:")
-    text = text.replace("Emergency Alert Recommendation:", "\nEmergency Alert Recommendation:")
 
-    lines = [line.strip("• ").strip() for line in text.splitlines() if line.strip()]
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-    section_map = {
-        "Symptoms reported": "Symptoms",
-        "Symptoms explanation": "Symptoms Explanation",
-        "Pain score": "Pain Score",
-        "Pain explanation": "Pain Explanation",
-        "Recommended Action": "Recommended Action",
-        "Action explanation": "Action Explanation",
-        "Doctor consultation": "Doctor Consultation",
-        "Precautions": "Precautions",
-        "Precautions explanation": "Precautions Explanation",
-        "Lifestyle & Wellness Suggestions": "Lifestyle",
-        "Warning Signs": "Warning Signs",
-        "Warning signs explanation": "Warning Signs Explanation",
-        "Emergency Warning Signs": "Warning Signs",
-        "AI Confidence Level": "Confidence",
-        "Confidence explanation": "Confidence Explanation",
-        "Duration": "Duration",
-        "Duration explanation": "Duration Explanation",
-        "Existing Conditions": "Existing Conditions",
-        "Condition explanation": "Condition Explanation",
-        "Clinical Concern": "Clinical Concern",
-        "Clinical concern explanation": "Clinical Concern Explanation",
-        "Blood Pressure": "Blood Pressure",
-        "Blood pressure explanation": "Blood Pressure Explanation",
-        "Blood Sugar": "Blood Sugar",
-        "Blood sugar explanation": "Blood Sugar Explanation",
-        "Emergency Alert Recommendation": "Emergency Alert"
+    merged = {
+        "Symptoms": {"value": "", "detail": ""},
+        "Pain Score": {"value": "", "detail": ""},
+        "Recommended Action": {"value": "", "detail": ""},
+        "Precautions": {"value": "", "detail": ""},
+        "Warning Signs": {"value": "", "detail": ""},
+        "Confidence": {"value": "", "detail": ""},
+        "Duration": {"value": "", "detail": ""},
+        "Existing Conditions": {"value": "", "detail": ""},
+        "Clinical Concern": {"value": "", "detail": ""},
+        "Blood Pressure": {"value": "", "detail": ""},
+        "Blood Sugar": {"value": "", "detail": ""},
     }
 
-    grouped = {}
-    current_title = None
+    key_map = {
+        "Symptoms reported": ("Symptoms", "value"),
+        "Symptoms explanation": ("Symptoms", "detail"),
+        "Pain score": ("Pain Score", "value"),
+        "Pain explanation": ("Pain Score", "detail"),
+        "Recommended Action": ("Recommended Action", "value"),
+        "Action explanation": ("Recommended Action", "detail"),
+        "Precautions": ("Precautions", "value"),
+        "Precautions explanation": ("Precautions", "detail"),
+        "Warning Signs": ("Warning Signs", "value"),
+        "Warning signs explanation": ("Warning Signs", "detail"),
+        "AI Confidence Level": ("Confidence", "value"),
+        "Confidence explanation": ("Confidence", "detail"),
+        "Duration": ("Duration", "value"),
+        "Duration explanation": ("Duration", "detail"),
+        "Existing Conditions": ("Existing Conditions", "value"),
+        "Condition explanation": ("Existing Conditions", "detail"),
+        "Clinical Concern": ("Clinical Concern", "value"),
+        "Clinical concern explanation": ("Clinical Concern", "detail"),
+        "Blood Pressure": ("Blood Pressure", "value"),
+        "Blood pressure explanation": ("Blood Pressure", "detail"),
+        "Blood Sugar": ("Blood Sugar", "value"),
+        "Blood sugar explanation": ("Blood Sugar", "detail"),
+    }
 
     for line in lines:
-        if ":" in line:
-            head, body = line.split(":", 1)
-            head = head.strip()
-            body = body.strip()
-            title = section_map.get(head, head)
-            current_title = title
-            grouped.setdefault(title, []).append(body if body else "-")
-        else:
-            if current_title:
-                grouped.setdefault(current_title, []).append(line)
-            else:
-                grouped.setdefault("Assessment", []).append(line)
+        if ":" not in line:
+            continue
+        head, body = line.split(":", 1)
+        head = head.strip()
+        body = body.strip()
+        if head in key_map:
+            section, field = key_map[head]
+            merged[section][field] = body
 
-    return grouped
+    return {k: v for k, v in merged.items() if v["value"] or v["detail"]}
 
 st.markdown(f"""
 <style>
@@ -691,8 +692,8 @@ button[kind="primary"] span {{
 
 .severity-grid {{
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.95rem;
     align-items: stretch;
 }}
 
@@ -864,16 +865,20 @@ elif st.session_state.page == "result":
     severity_sections = split_severity_sections(parsed["severity"])
 
     card_parts = []
-    for title, items in severity_sections.items():
-        item_html = "".join(
-            f"<div style='margin-bottom:0.45rem;'>• {safe_text(item)}</div>"
-            for item in items if str(item).strip()
-        )
+    for title, content in severity_sections.items():
+        value_html = ""
+        detail_html = ""
+        if content.get("value"):
+            value_html = f"<div style='margin-bottom:0.6rem; font-weight:700;'>• {safe_text(content['value'])}</div>"
+        if content.get("detail"):
+            detail_html = f"<div style='margin-top:0.3rem; color: var(--muted); line-height:1.8; font-size:0.95rem;'>{safe_text(content['detail'])}</div>"
+
         card_html = f"""
 <div class="severity-item">
     <div class="severity-item-title">{safe_text(title)}</div>
     <div class="severity-item-body">
-        {item_html}
+        {value_html}
+        {detail_html}
     </div>
 </div>
 """
